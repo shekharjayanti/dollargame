@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>The $ Game - Alpha Dashboard</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        :root { --primary: #1a2a6c; --win: #27ae60; --loss: #e74c3c; --accent: #fdbb2d; --bg: #f4f7f6; }
+        body { font-family: 'Segoe UI', system-ui, sans-serif; background: var(--bg); padding: 20px; color: #333; }
+        .dashboard { max-width: 1000px; margin: 0 auto; background: white; padding: 30px; border-radius: 20px; box-shadow: 0 10px 30px rgba(0,0,0,0.1); }
+        header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 25px; border-bottom: 2px solid #eee; padding-bottom: 15px; }
+        .stat-card { background: linear-gradient(135deg, #1a2a6c, #b21f1f); color: white; padding: 25px; border-radius: 15px; text-align: center; margin-bottom: 25px; }
+        .winner-name { font-size: 2.5em; font-weight: 800; margin: 5px 0; }
+        .chart-container { height: 400px; margin-bottom: 30px; background: #fff; padding: 15px; border-radius: 12px; border: 1px solid #eee; }
+        table { width: 100%; border-collapse: collapse; }
+        th { text-align: left; padding: 12px; font-size: 0.8em; color: #888; text-transform: uppercase; border-bottom: 2px solid #eee; }
+        td { padding: 15px 12px; border-bottom: 1px solid #f8f8f8; font-size: 1.1em; }
+        .ticker { font-family: monospace; background: #f0f7ff; color: #007bff; padding: 4px 8px; border-radius: 5px; font-weight: bold; }
+        .pos { color: var(--win); font-weight: bold; }
+        .neg { color: var(--loss); font-weight: bold; }
+        .rocket { margin-left: 8px; font-size: 1.2em; filter: drop-shadow(0 0 3px gold); }
+        .benchmarks-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 15px; margin-top: 10px; }
+        .benchmark-card { background: #f8f9fa; border-radius: 12px; padding: 15px; border: 1px solid #edf2f7; text-align: center; }
+        .refresh-btn { background: var(--primary); color: white; border: none; padding: 10px 15px; border-radius: 8px; cursor: pointer; font-weight: 600; }
+    </style>
+</head>
+<body>
+<div class="dashboard">
+    <header>
+        <h1>🏆 The $ Game: 2026</h1>
+        <button class="refresh-btn" onclick="update()">🔄 Update Live</button>
+    </header>
+
+    <div id="leader-card"></div>
+
+    <h2>Performance Since Jan 1, 2026</h2>
+    <div class="chart-container">
+        <canvas id="multiChart"></canvas>
+    </div>
+
+    <h2>Leaderboard</h2>
+    <div id="participant-area">Connecting to your spreadsheet...</div>
+
+    <h2>Market Benchmarks</h2>
+    <div id="market-area" class="benchmarks-grid"></div>
+</div>
+
+<script>
+    const SHEET_ID = '1sEP1zRqhjJqp_cuLvggNBjiPdjbrCpMr5DW-7rIBF_s';
+    const GID_MAIN = '1028487677';
+    const TAB_HISTORY = 'History';
+
+    let chartObj = null;
+
+    async function update() {
+        try {
+            const res = await fetch(`https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:json&gid=${GID_MAIN}`);
+            const text = await res.text();
+            const json = JSON.parse(text.substring(text.indexOf('{'), text.lastIndexOf('}') + 1));
+            const rows = json.table.rows;
+            
+            let participants = [];
+            let benchmarks = [];
+            let sp500Perf = -999; // Default to low number
+
+            rows.forEach((r, i) => {
+                if(r.c && r.c[0] && r.c[1]) {
+                    const name = r.c[0].v || "";
+                    const ticker = r.c[1].v || "";
+                    if(ticker === 'Ticker' || name === 'Participant') return;
+
+                    const price = r.c[3] ? (r.c[3].f || r.c[3].v) : '0';
+                    const perfRaw = r.c[4] ? r.c[4].v : 0;
+                    const perfDisp = (perfRaw * 100).toFixed(2) + '%';
+
+                    const item = { name, ticker, price, perfRaw, perfDisp };
+                    
+                    if (participants.length < 10) {
+                        participants.push(item);
+                    } else {
+                        benchmarks.push(item);
+                        // Identify S&P 500 for the Rocket 🚀 logic
+                        if (name.toUpperCase().includes("S&P") || ticker.includes("INX")) {
+                            sp500Perf = perfRaw;
+                        }
+                    }
+                }
+            });
+
+            participants.sort((a, b) => b.perfRaw - a.perfRaw);
+            
+            // Render Table with 🚀 Rocket logic
+            let pTable = `<table><tr><th>#</th><th>Name</th><th>Ticker</th><th style="text-align:right">Price</th><th style="text-align:right">Gain</th></tr>`;
+            participants.forEach((p, i) => {
+                const isBeatingMarket = p.perfRaw > sp500Perf && sp500Perf !== -999;
+                const color = p.perfRaw >= 0 ? 'pos' : 'neg';
+                pTable += `<tr>
+                    <td>#${i+1}</td>
+                    <td><strong>${p.name}</strong>${isBeatingMarket ? '<span class="rocket">🚀</span>' : ''}</td>
+                    <td><span class="ticker">${p.ticker}</span></td>
+                    <td style="text-align:right">$${p.price}</td>
+                    <td style="text-align:right" class="${color}">${(p.perfRaw > 0 ? '+' : '') + p.perfDisp}</td>
+                </tr>`;
+            });
+            document.getElementById('participant-area').innerHTML = pTable + '</table>';
+
+            // Render Market Section
+            document.getElementById('market-area').innerHTML = benchmarks.map(b => `
+                <div class="benchmark-card">
+                    <div style="font-weight:700;">${b.name}</div>
+                    <div class="${b.perfRaw >= 0 ? 'pos' : 'neg'}">${(b.perfRaw > 0 ? '+' : '') + b.perfDisp}</div>
+                </div>`).join('');
+
+            // Update Winner Card
+            const leader = participants[0];
+            document.getElementById('leader-card').innerHTML = `
+                <div class="stat-card">
+                    <div>CURRENT CHAMPION</div>
+                    <div class="winner-name">👑 ${leader.name}</div>
+                    <div style="font-size:1.2em; color:var(--accent)">${leader.ticker} • ${leader.perfDisp}</div>
+                </div>`;
+
+            fetchHistory();
+        } catch (e) { 
+            console.error(e);
+            document.getElementById('participant-area').innerHTML = "Sync Error. Please verify the sheet is 'Published to Web'.";
+        }
+    }
+
+    async function fetchHistory() {
+        try {
+            const res = await fetch(`https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:json&sheet=${TAB_HISTORY}`);
+            const text = await res.text();
+            const json = JSON.parse(text.substring(text.indexOf('{'), text.lastIndexOf('}') + 1));
+            const rows = json.table.rows;
+            const cols = json.table.cols;
+
+            if (!rows || rows.length === 0) return;
+
+            const labels = rows.map(r => r.c[0]?.f || '');
+            const colors = ['#1a2a6c', '#b21f1f', '#fdbb2d', '#27ae60', '#3498db', '#9b59b6', '#e67e22', '#1abc9c', '#2c3e50', '#7f8c8d'];
+
+            const datasets = [];
+            for (let i = 1; i < cols.length; i++) {
+                if (!cols[i] || !cols[i].label) continue;
+                
+                // CLEANUP: Removes "Close" text from the chart legend
+                const cleanLabel = cols[i].label.toString().replace(/Close/gi, "").trim();
+
+                const tickerData = rows.map(r => {
+                    const val = r.c[i]?.v;
+                    const firstVal = rows[0].c[i]?.v;
+                    return (firstVal && val) ? ((val - firstVal) / firstVal) * 100 : 0;
+                });
+
+                datasets.push({
+                    label: cleanLabel,
+                    data: tickerData,
+                    borderColor: colors[i-1] || '#ccc',
+                    borderWidth: cleanLabel.toUpperCase().includes("S&P") ? 4 : 2, 
+                    fill: false,
+                    tension: 0.1,
+                    pointRadius: 0
+                });
+            }
+
+            const ctx = document.getElementById('multiChart').getContext('2d');
+            if (chartObj) chartObj.destroy();
+            chartObj = new Chart(ctx, {
+                type: 'line',
+                data: { labels, datasets },
+                options: { 
+                    responsive: true, 
+                    maintainAspectRatio: false,
+                    plugins: { 
+                        legend: { position: 'bottom', labels: { boxWidth: 12, font: { size: 10 } } },
+                        tooltip: { mode: 'index', intersect: false }
+                    },
+                    scales: { 
+                        y: { ticks: { callback: v => v.toFixed(1) + '%' }, title: { display: true, text: 'Return (%)' } },
+                        x: { ticks: { maxTicksLimit: 10 } }
+                    }
+                }
+            });
+        } catch (e) { console.error("Chart Error:", e); }
+    }
+
+    update();
+</script>
+</body>
+</html>
