@@ -116,10 +116,10 @@
             font-family: monospace; 
             background: #f0f7ff; 
             color: #007bff; 
-            padding: 3px 6px; 
-            border-radius: 5px; 
+            padding: 4px 10px; 
+            border-radius: 6px; 
             font-weight: bold;
-            font-size: 0.9em;
+            font-size: 1.05em;
             white-space: nowrap;
         }
         
@@ -135,8 +135,36 @@
         
         .rocket { 
             margin-left: 5px; 
-            font-size: 1.1em; 
-            filter: drop-shadow(0 0 3px gold); 
+            filter: drop-shadow(0 0 3px gold);
+            display: inline-block;
+            transition: font-size 0.3s ease;
+        }
+        
+        .section-divider {
+            margin: 50px 0 40px 0;
+            padding: 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border-radius: 15px;
+            text-align: center;
+            color: white;
+        }
+        
+        .section-divider h2 {
+            margin: 0;
+            font-size: 1.8em;
+            font-weight: 800;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+        }
+        
+        .year-badge {
+            display: inline-block;
+            background: rgba(255,255,255,0.2);
+            padding: 8px 20px;
+            border-radius: 25px;
+            margin-top: 10px;
+            font-size: 1.1em;
+            font-weight: 600;
         }
         
         .benchmarks-grid { 
@@ -233,6 +261,14 @@
                 padding: 10px;
                 font-size: 0.85em;
             }
+            .section-divider h2 {
+                font-size: 1.4em;
+            }
+            
+            .year-badge {
+                font-size: 0.95em;
+                padding: 6px 15px;
+            }
         }
         
         @media (max-width: 480px) {
@@ -256,6 +292,16 @@
             
             .benchmarks-grid {
                 grid-template-columns: repeat(2, 1fr);
+            }
+            
+            .section-divider h2 {
+                font-size: 1.2em;
+                letter-spacing: 1px;
+            }
+            
+            .year-badge {
+                font-size: 0.9em;
+                padding: 5px 12px;
             }
         }
     </style>
@@ -282,7 +328,12 @@
     <h2>Market Benchmarks</h2>
     <div id="market-area" class="benchmarks-grid">Loading...</div>
 
-    <h2>2025 Performance</h2>
+    <div class="section-divider">
+        <h2>📅 2025 Performance</h2>
+        <div class="year-badge">Historical Results</div>
+    </div>
+
+    <h2>2025 Final Leaderboard</h2>
     <div class="table-wrapper">
         <div id="participant-2025-area">Loading 2025 data...</div>
     </div>
@@ -358,11 +409,26 @@
             participants.forEach((p, i) => {
                 const isBeatingMarket = p.perfRaw > sp500Perf && sp500Perf !== -999;
                 const color = p.perfRaw >= 0 ? 'pos' : 'neg';
+                
+                // Calculate rocket size based on performance (0.8em to 2.5em)
+                // Higher performance = bigger rocket
+                let rocketSize = '1em';
+                if (isBeatingMarket) {
+                    const perfPercent = p.perfRaw * 100;
+                    const sp500Percent = sp500Perf * 100;
+                    const outperformance = perfPercent - sp500Percent;
+                    
+                    // Scale: 0% outperformance = 0.8em, 10%+ outperformance = 2.5em
+                    const scaleFactor = Math.min(outperformance / 10, 1);
+                    const size = 0.8 + (scaleFactor * 1.7); // 0.8 to 2.5
+                    rocketSize = size.toFixed(2) + 'em';
+                }
+                
                 pTable += `<tr>
                     <td>#${i+1}</td>
-                    <td><strong>${p.name}</strong>${isBeatingMarket ? '<span class="rocket">🚀</span>' : ''}</td>
+                    <td><strong>${p.name}</strong>${isBeatingMarket ? `<span class="rocket" style="font-size: ${rocketSize};">🚀</span>` : ''}</td>
                     <td><span class="ticker">${p.ticker}</span></td>
-                    <td style="text-align:right">$${p.price}</td>
+                    <td style="text-align:right">${p.price}</td>
                     <td style="text-align:right" class="${color}">${(p.perfRaw > 0 ? '+' : '') + p.perfDisp}</td>
                 </tr>`;
             });
