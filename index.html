@@ -349,7 +349,6 @@
     const SHEET_ID = '1sEP1zRqhjJqp_cuLvggNBjiPdjbrCpMr5DW-7rIBF_s';
     const GID_MAIN = '1028487677';
     const GID_2025 = '869680458';
-    const TAB_HISTORY = 'History';
 
     let chartObj = null;
 
@@ -359,6 +358,55 @@
         'Nasdaq Composite (.IXIC)': 0.2034,
         'Dow Jones Industrial (.DJI)': 0.1297
     };
+
+    // Yahoo Finance API proxy endpoint
+    const YAHOO_API = 'https://query1.finance.yahoo.com/v8/finance/chart/';
+
+    async function fetchHistoricalData(ticker, startDate) {
+        try {
+            // Convert date to Unix timestamp
+            const start = Math.floor(new Date(startDate).getTime() / 1000);
+            const end = Math.floor(Date.now() / 1000);
+            
+            const url = `${YAHOO_API}${ticker}?period1=${start}&period2=${end}&interval=1d`;
+            
+            console.log(`Fetching data for ${ticker}...`);
+            const response = await fetch(url);
+            const data = await response.json();
+            
+            if (data.chart.error) {
+                console.error(`Error fetching ${ticker}:`, data.chart.error);
+                return null;
+            }
+            
+            const result = data.chart.result[0];
+            const timestamps = result.timestamp;
+            const closes = result.indicators.quote[0].close;
+            
+            // Create array of {date, price} objects
+            const historicalData = timestamps.map((ts, i) => ({
+                date: new Date(ts * 1000),
+                price: closes[i]
+            })).filter(d => d.price !== null);
+            
+            console.log(`Fetched ${historicalData.length} data points for ${ticker}`);
+            return historicalData;
+            
+        } catch (error) {
+            console.error(`Failed to fetch data for ${ticker}:`, error);
+            return null;
+        }
+    }
+
+    function calculateReturns(historicalData) {
+        if (!historicalData || historicalData.length === 0) return [];
+        
+        const firstPrice = historicalData[0].price;
+        return historicalData.map(d => ({
+            date: d.date,
+            return: ((d.price - firstPrice) / firstPrice) * 100
+        }));
+    }
 
     async function update() {
         console.log('Starting update...');
@@ -608,57 +656,65 @@
     }
 
     async function fetchHistory(participants) {
-        console.log('Fetching history...');
+        console.log('Fetching historical data from Yahoo Finance...');
+        
         try {
-            const res = await fetch(`https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:json&sheet=${TAB_HISTORY}`);
-            const text = await res.text();
-            const json = JSON.parse(text.substring(text.indexOf('{'), text.lastIndexOf('}') + 1));
-            const rows = json.table.rows;
-            const cols = json.table.cols;
-
-            if (!rows || rows.length === 0) {
-                console.log('No history data found');
+            // Get all unique tickers (participants + market benchmarks)
+            const participantTickers = participants.map(p => p.ticker);
+            const marketTickers = ['^GSPC', '^IXIC', '^DJI']; // S&P 500, Nasdaq, Dow
+            const allTickers = [...participantTickers, ...marketTickers];
+            
+            console.log('Fetching data for tickers:', allTickers);
+            
+            // Fetch historical data for all tickers
+            const startDate = '2026-01-01';
+            const promises = allTickers.map(ticker => fetchHistoricalData(ticker, startDate));
+            const results = await Promise.all(promises);
+            
+            // Filter out failed requests
+            const successfulData = results.filter(r => r !== null);
+            
+            if (successfulData.length === 0) {
+                console.error('No historical data could be fetched');
                 return;
             }
-
-            console.log('History rows:', rows.length, 'cols:', cols.length);
-
-            const labels = rows.map(r => r.c[0]?.f || '');
+            
+            // Find common dates across all tickers
+            const allDates = successfulData[0].map(d => d.date.toDateString());
+            
+            // Create datasets
             const colors = ['#1a2a6c', '#b21f1f', '#fdbb2d', '#27ae60', '#3498db', '#9b59b6', '#e67e22', '#1abc9c', '#2c3e50', '#7f8c8d'];
-
-            // Create a map of ticker to participant for ordering
             const participantMap = {};
             participants.forEach((p, idx) => {
                 participantMap[p.ticker.toUpperCase()] = { ...p, order: idx };
             });
-
+            
             const allDatasets = [];
             const participantDatasets = [];
             
-            for (let i = 1; i < cols.length; i++) {
-                if (!cols[i] || !cols[i].label) continue;
+            allTickers.forEach((ticker, index) => {
+                const historicalData = results[index];
+                if (!historicalData) return;
                 
-                const cleanLabel = cols[i].label.toString().replace(/Close/gi, "").trim();
-
-                const tickerData = rows.map(r => {
-                    const val = r.c[i]?.v;
-                    const firstVal = rows[0].c[i]?.v;
-                    return (firstVal && val) ? ((val - firstVal) / firstVal) * 100 : 0;
-                });
-
-                const isMarketBenchmark = cleanLabel.toUpperCase().includes("S&P") || 
-                                         cleanLabel.toUpperCase().includes("DOW") || 
-                                         cleanLabel.toUpperCase().includes("NASDAQ") ||
-                                         cleanLabel.toUpperCase().includes("RUSSELL");
-
-                // Check if this ticker matches a participant
-                const participantInfo = participantMap[cleanLabel.toUpperCase()];
-
+                const returns = calculateReturns(historicalData);
+                const tickerData = returns.map(r => r.return);
+                
+                // Determine if this is a market benchmark
+                const isMarketBenchmark = marketTickers.includes(ticker);
+                
+                // Get display name
+                let displayName = ticker;
+                if (ticker === '^GSPC') displayName = 'S&P 500';
+                else if (ticker === '^IXIC') displayName = 'NASDAQ';
+                else if (ticker === '^DJI') displayName = 'DOW';
+                
+                const participantInfo = participantMap[ticker.toUpperCase()];
+                
                 const dataset = {
-                    label: cleanLabel,
+                    label: displayName,
                     data: tickerData,
-                    borderColor: colors[i-1] || '#ccc',
-                    borderWidth: isMarketBenchmark ? 4 : 2, 
+                    borderColor: colors[index % colors.length],
+                    borderWidth: isMarketBenchmark ? 4 : 2,
                     fill: false,
                     tension: 0.1,
                     pointRadius: 0,
@@ -668,29 +724,26 @@
                 
                 allDatasets.push(dataset);
                 
-                // Track participant datasets (not market benchmarks) for averaging
                 if (!isMarketBenchmark) {
                     participantDatasets.push(tickerData);
                 }
-            }
-
-            // Sort datasets: participants by leaderboard order, then market benchmarks, then OUCT average
+            });
+            
+            // Sort datasets
             allDatasets.sort((a, b) => {
                 if (a.isMarket && !b.isMarket) return 1;
                 if (!a.isMarket && b.isMarket) return -1;
                 return a.order - b.order;
             });
-
-            // Calculate average of all participants at each time point
+            
+            // Calculate OUCT average
             if (participantDatasets.length > 0) {
-                const avgData = rows.map((r, idx) => {
-                    const sum = participantDatasets.reduce((total, dataset) => total + (dataset[idx] || 0), 0);
+                const avgData = allDates.map((date, idx) => {
+                    const sum = participantDatasets.reduce((total, dataset) => 
+                        total + (dataset[idx] || 0), 0);
                     return sum / participantDatasets.length;
                 });
-
-                console.log('Adding OUCT average to chart, sample data:', avgData.slice(0, 3));
-
-                // Add participants average as a separate line
+                
                 allDatasets.push({
                     label: "OUCT Covalent Partners",
                     data: avgData,
@@ -703,7 +756,14 @@
                     order: 1000
                 });
             }
-
+            
+            // Format dates for labels
+            const labels = allDates.map(dateStr => {
+                const d = new Date(dateStr);
+                return `${d.getMonth() + 1}/${d.getDate()}`;
+            });
+            
+            // Create chart
             const ctx = document.getElementById('multiChart').getContext('2d');
             if (chartObj) chartObj.destroy();
             chartObj = new Chart(ctx, {
@@ -725,7 +785,12 @@
                             mode: 'index', 
                             intersect: false,
                             titleFont: { size: 11 },
-                            bodyFont: { size: 10 }
+                            bodyFont: { size: 10 },
+                            callbacks: {
+                                label: function(context) {
+                                    return context.dataset.label + ': ' + context.parsed.y.toFixed(2) + '%';
+                                }
+                            }
                         }
                     },
                     scales: { 
@@ -751,9 +816,13 @@
                 }
             });
             
-            console.log('Chart created successfully');
+            console.log('Chart created successfully with live data from Yahoo Finance');
+            
         } catch (e) { 
             console.error("Chart Error:", e);
+            // Fallback message
+            document.getElementById('multiChart').parentElement.innerHTML = 
+                '<div class="error-msg">Unable to load historical chart data. Please check console for details.</div>';
         }
     }
 
