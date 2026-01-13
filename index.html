@@ -3,259 +3,38 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>The $ Game - Alpha Dashboard</title>
+    <title>OUCT Covalent Partners - Alpha Dashboard</title>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
-        :root { 
-            --primary: #1a2a6c; 
-            --win: #27ae60; 
-            --loss: #e74c3c; 
-            --accent: #fdbb2d; 
-            --bg: #f4f7f6; 
-        }
-        
-        * {
-            box-sizing: border-box;
-        }
-        
-        body { 
-            font-family: 'Segoe UI', system-ui, sans-serif; 
-            background: var(--bg); 
-            padding: 10px; 
-            color: #333;
-            margin: 0;
-        }
-        
-        .dashboard { 
-            max-width: 1000px; 
-            margin: 0 auto; 
-            background: white; 
-            padding: 20px; 
-            border-radius: 15px; 
-            box-shadow: 0 10px 30px rgba(0,0,0,0.1); 
-        }
-        
-        header { 
-            display: flex; 
-            justify-content: space-between; 
-            align-items: center; 
-            margin-bottom: 20px; 
-            border-bottom: 2px solid #eee; 
-            padding-bottom: 15px;
-            flex-wrap: wrap;
-            gap: 10px;
-        }
-        
-        h1 {
-            font-size: 1.5em;
-            margin: 0;
-            flex: 1;
-            min-width: 200px;
-        }
-        
-        h2 {
-            font-size: 1.2em;
-            margin: 20px 0 15px 0;
-        }
-        
+        :root { --primary: #1a2a6c; --win: #27ae60; --loss: #e74c3c; --accent: #fdbb2d; --bg: #f4f7f6; }
+        body { font-family: 'Segoe UI', system-ui, sans-serif; background: var(--bg); padding: 20px; color: #333; }
+        .dashboard { max-width: 1000px; margin: 0 auto; background: white; padding: 30px; border-radius: 20px; box-shadow: 0 10px 30px rgba(0,0,0,0.1); }
+        header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 25px; border-bottom: 2px solid #eee; padding-bottom: 15px; }
         .stat-card { 
-            background: linear-gradient(135deg, #1a2a6c, #b21f1f); 
-            color: white; 
-            padding: 20px; 
-            border-radius: 15px; 
-            text-align: center; 
-            margin-bottom: 20px; 
+            background: var(--primary); /* Fallback */
+            color: white; padding: 25px; border-radius: 15px; text-align: center; margin-bottom: 25px; 
+            transition: background 1s ease; /* Smooth color transition */
+            box-shadow: 0 8px 15px rgba(0,0,0,0.1);
         }
-        
-        .winner-name { 
-            font-size: 1.8em; 
-            font-weight: 800; 
-            margin: 5px 0;
-            word-wrap: break-word;
-        }
-        
-        .chart-container { 
-            height: 300px; 
-            margin-bottom: 25px; 
-            background: #fff; 
-            padding: 10px; 
-            border-radius: 12px; 
-            border: 1px solid #eee;
-            position: relative;
-        }
-        
-        .table-wrapper {
-            overflow-x: auto;
-            -webkit-overflow-scrolling: touch;
-            margin-bottom: 20px;
-        }
-        
-        table { 
-            width: 100%; 
-            border-collapse: collapse;
-            min-width: 500px;
-        }
-        
-        th { 
-            text-align: left; 
-            padding: 10px 8px; 
-            font-size: 0.75em; 
-            color: #888; 
-            text-transform: uppercase; 
-            border-bottom: 2px solid #eee;
-            white-space: nowrap;
-        }
-        
-        td { 
-            padding: 12px 8px; 
-            border-bottom: 1px solid #f8f8f8; 
-            font-size: 0.95em; 
-        }
-        
-        .ticker { 
-            font-family: monospace; 
-            background: #f0f7ff; 
-            color: #007bff; 
-            padding: 3px 6px; 
-            border-radius: 5px; 
-            font-weight: bold;
-            font-size: 0.9em;
-            white-space: nowrap;
-        }
-        
-        .pos { 
-            color: var(--win); 
-            font-weight: bold; 
-        }
-        
-        .neg { 
-            color: var(--loss); 
-            font-weight: bold; 
-        }
-        
-        .rocket { 
-            margin-left: 5px; 
-            font-size: 1.1em; 
-            filter: drop-shadow(0 0 3px gold); 
-        }
-        
-        .benchmarks-grid { 
-            display: grid; 
-            grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); 
-            gap: 10px; 
-            margin-top: 10px; 
-        }
-        
-        .benchmark-card { 
-            background: #f8f9fa; 
-            border-radius: 12px; 
-            padding: 12px; 
-            border: 1px solid #edf2f7; 
-            text-align: center;
-            font-size: 0.9em;
-        }
-        
-        .refresh-btn { 
-            background: var(--primary); 
-            color: white; 
-            border: none; 
-            padding: 12px 18px; 
-            border-radius: 8px; 
-            cursor: pointer; 
-            font-weight: 600;
-            font-size: 0.9em;
-            min-height: 44px;
-            white-space: nowrap;
-        }
-        
-        .refresh-btn:active {
-            transform: scale(0.98);
-            opacity: 0.9;
-        }
-        
-        /* Mobile-specific styles */
-        @media (max-width: 768px) {
-            body {
-                padding: 5px;
-            }
-            
-            .dashboard {
-                padding: 15px;
-                border-radius: 10px;
-            }
-            
-            h1 {
-                font-size: 1.3em;
-            }
-            
-            h2 {
-                font-size: 1.1em;
-            }
-            
-            .winner-name {
-                font-size: 1.5em;
-            }
-            
-            .stat-card {
-                padding: 15px;
-            }
-            
-            .chart-container {
-                height: 250px;
-                padding: 5px;
-            }
-            
-            td {
-                font-size: 0.85em;
-                padding: 10px 6px;
-            }
-            
-            th {
-                font-size: 0.7em;
-                padding: 8px 6px;
-            }
-            
-            .benchmarks-grid {
-                grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
-                gap: 8px;
-            }
-            
-            .benchmark-card {
-                padding: 10px;
-                font-size: 0.85em;
-            }
-        }
-        
-        @media (max-width: 480px) {
-            h1 {
-                font-size: 1.1em;
-                min-width: 150px;
-            }
-            
-            .winner-name {
-                font-size: 1.3em;
-            }
-            
-            .refresh-btn {
-                padding: 10px 15px;
-                font-size: 0.85em;
-            }
-            
-            .chart-container {
-                height: 220px;
-            }
-            
-            .benchmarks-grid {
-                grid-template-columns: repeat(2, 1fr);
-            }
-        }
+        .winner-name { font-size: 2.5em; font-weight: 800; margin: 5px 0; }
+        .chart-container { height: 400px; margin-bottom: 30px; background: #fff; padding: 15px; border-radius: 12px; border: 1px solid #eee; }
+        table { width: 100%; border-collapse: collapse; }
+        th { text-align: left; padding: 12px; font-size: 0.8em; color: #888; text-transform: uppercase; border-bottom: 2px solid #eee; }
+        td { padding: 15px 12px; border-bottom: 1px solid #f8f8f8; font-size: 1.1em; }
+        .ticker { font-family: monospace; background: #f0f7ff; color: #007bff; padding: 4px 8px; border-radius: 5px; font-weight: bold; }
+        .pos { color: var(--win); font-weight: bold; }
+        .neg { color: var(--loss); font-weight: bold; }
+        .rocket { margin-left: 8px; font-size: 1.2em; filter: drop-shadow(0 0 3px gold); }
+        .benchmarks-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 15px; margin-top: 10px; }
+        .benchmark-card { background: #f8f9fa; border-radius: 12px; padding: 15px; border: 1px solid #edf2f7; text-align: center; }
+        .refresh-btn { background: var(--primary); color: white; border: none; padding: 10px 15px; border-radius: 8px; cursor: pointer; font-weight: 600; }
     </style>
 </head>
 <body>
 <div class="dashboard">
     <header>
-        <h1>🏆 The $ Game: 2026</h1>
-        <button class="refresh-btn" onclick="update()">🔄 Update Live</button>
+        <h1>🧪 OUCT Covalent Partners</h1>
+        <button class="refresh-btn" onclick="update()">🚀 Update Live</button>
     </header>
 
     <div id="leader-card"></div>
@@ -266,9 +45,7 @@
     </div>
 
     <h2>Leaderboard</h2>
-    <div class="table-wrapper">
-        <div id="participant-area">Connecting to your spreadsheet...</div>
-    </div>
+    <div id="participant-area">Connecting to your spreadsheet...</div>
 
     <h2>Market Benchmarks</h2>
     <div id="market-area" class="benchmarks-grid"></div>
@@ -278,8 +55,19 @@
     const SHEET_ID = '1sEP1zRqhjJqp_cuLvggNBjiPdjbrCpMr5DW-7rIBF_s';
     const GID_MAIN = '1028487677';
     const TAB_HISTORY = 'History';
-
     let chartObj = null;
+
+    // Helper for Dynamic Colors
+    function getCardStyle(perf) {
+        const intensity = Math.min(Math.abs(perf) / 0.15, 1);
+        if (perf >= 0) {
+            // Fades from Dark Blue to Emerald Green
+            return `linear-gradient(135deg, #1a2a6c, rgba(39, 174, 96, ${intensity}))`;
+        } else {
+            // Fades from Dark Blue to Fire Red
+            return `linear-gradient(135deg, #1a2a6c, rgba(231, 76, 60, ${intensity}))`;
+        }
+    }
 
     async function update() {
         try {
@@ -292,7 +80,7 @@
             let benchmarks = [];
             let sp500Perf = -999;
 
-            rows.forEach((r, i) => {
+            rows.forEach((r) => {
                 if(r.c && r.c[0] && r.c[1]) {
                     const name = r.c[0].v || "";
                     const ticker = r.c[1].v || "";
@@ -301,209 +89,88 @@
                     const price = r.c[3] ? (r.c[3].f || r.c[3].v) : '0';
                     const perfRaw = r.c[4] ? r.c[4].v : 0;
                     const perfDisp = (perfRaw * 100).toFixed(2) + '%';
-
                     const item = { name, ticker, price, perfRaw, perfDisp };
                     
-                    if (participants.length < 10) {
-                        participants.push(item);
-                    } else {
+                    if (participants.length < 10) participants.push(item);
+                    else {
                         benchmarks.push(item);
-                        if (name.toUpperCase().includes("S&P") || ticker.includes("INX")) {
-                            sp500Perf = perfRaw;
-                        }
+                        if (name.toUpperCase().includes("S&P") || ticker.includes("INX")) sp500Perf = perfRaw;
                     }
                 }
             });
 
             participants.sort((a, b) => b.perfRaw - a.perfRaw);
             
-            // Calculate average performance of participants
-            const avgPerf = participants.reduce((sum, p) => sum + p.perfRaw, 0) / participants.length;
-            const avgPerfDisp = (avgPerf * 100).toFixed(2) + '%';
-            
+            // Render Leaderboard
             let pTable = `<table><tr><th>#</th><th>Name</th><th>Ticker</th><th style="text-align:right">Price</th><th style="text-align:right">Gain</th></tr>`;
             participants.forEach((p, i) => {
-                const isBeatingMarket = p.perfRaw > sp500Perf && sp500Perf !== -999;
                 const color = p.perfRaw >= 0 ? 'pos' : 'neg';
-                pTable += `<tr>
-                    <td>#${i+1}</td>
-                    <td><strong>${p.name}</strong>${isBeatingMarket ? '<span class="rocket">🚀</span>' : ''}</td>
-                    <td><span class="ticker">${p.ticker}</span></td>
-                    <td style="text-align:right">$${p.price}</td>
-                    <td style="text-align:right" class="${color}">${(p.perfRaw > 0 ? '+' : '') + p.perfDisp}</td>
-                </tr>`;
+                pTable += `<tr><td>#${i+1}</td><td><strong>${p.name}</strong>${p.perfRaw > sp500Perf ? '<span class="rocket">🚀</span>' : ''}</td><td><span class="ticker">${p.ticker}</span></td><td style="text-align:right">$${p.price}</td><td style="text-align:right" class="${color}">${(p.perfRaw > 0 ? '+' : '') + p.perfDisp}</td></tr>`;
             });
             document.getElementById('participant-area').innerHTML = pTable + '</table>';
 
-            // Add OUCT Covalent Partners average to benchmarks array
-            benchmarks.push({
-                name: 'OUCT Covalent Partners',
-                perfRaw: avgPerf,
-                perfDisp: avgPerfDisp
-            });
-
-            document.getElementById('market-area').innerHTML = benchmarks.map(b => {
-                const isOUCT = b.name === 'OUCT Covalent Partners';
-                return `
-                <div class="benchmark-card" ${isOUCT ? 'style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; border: 2px solid #667eea;"' : ''}>
-                    <div style="font-weight:700; ${isOUCT ? 'color: white;' : ''}">${b.name}</div>
-                    <div class="${isOUCT ? '' : (b.perfRaw >= 0 ? 'pos' : 'neg')}" ${isOUCT ? 'style="color: white; font-weight: bold;"' : ''}>${(b.perfRaw > 0 ? '+' : '') + b.perfDisp}</div>
-                </div>`;
-            }).join('');
-
+            // Update Winner Card Dynamically
             const leader = participants[0];
+            const dynamicBG = getCardStyle(leader.perfRaw);
             document.getElementById('leader-card').innerHTML = `
-                <div class="stat-card">
-                    <div>CURRENT CHAMPION</div>
+                <div class="stat-card" style="background: ${dynamicBG}">
+                    <div style="text-transform: uppercase; font-size: 0.8em; letter-spacing: 2px;">Alpha Champion</div>
                     <div class="winner-name">👑 ${leader.name}</div>
-                    <div style="font-size:1.2em; color:var(--accent)">${leader.ticker} • ${leader.perfDisp}</div>
+                    <div style="font-size:1.2em; color:var(--accent); font-weight: bold;">${leader.ticker} • ${leader.perfDisp}</div>
                 </div>`;
 
-            fetchHistory(participants);
+            document.getElementById('market-area').innerHTML = benchmarks.map(b => `
+                <div class="benchmark-card"><div style="font-weight:700;">${b.name}</div><div class="${b.perfRaw >= 0 ? 'pos' : 'neg'}">${(b.perfRaw > 0 ? '+' : '') + b.perfDisp}</div></div>`).join('');
+
+            fetchHistory();
         } catch (e) { 
-            console.error(e);
             document.getElementById('participant-area').innerHTML = "Sync Error. Please verify the sheet is 'Published to Web'.";
         }
     }
 
-    async function fetchHistory(participants) {
+    async function fetchHistory() {
         try {
             const res = await fetch(`https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:json&sheet=${TAB_HISTORY}`);
             const text = await res.text();
             const json = JSON.parse(text.substring(text.indexOf('{'), text.lastIndexOf('}') + 1));
             const rows = json.table.rows;
             const cols = json.table.cols;
-
             if (!rows || rows.length === 0) return;
 
             const labels = rows.map(r => r.c[0]?.f || '');
             const colors = ['#1a2a6c', '#b21f1f', '#fdbb2d', '#27ae60', '#3498db', '#9b59b6', '#e67e22', '#1abc9c', '#2c3e50', '#7f8c8d'];
+            const datasets = [];
 
-            // Create a map of ticker to participant for ordering
-            const participantMap = {};
-            participants.forEach((p, idx) => {
-                participantMap[p.ticker.toUpperCase()] = { ...p, order: idx };
-            });
-
-            const allDatasets = [];
-            const participantDatasets = []; // Track participant datasets for averaging
-            
             for (let i = 1; i < cols.length; i++) {
                 if (!cols[i] || !cols[i].label) continue;
-                
                 const cleanLabel = cols[i].label.toString().replace(/Close/gi, "").trim();
-
                 const tickerData = rows.map(r => {
                     const val = r.c[i]?.v;
                     const firstVal = rows[0].c[i]?.v;
                     return (firstVal && val) ? ((val - firstVal) / firstVal) * 100 : 0;
                 });
 
-                const isMarketBenchmark = cleanLabel.toUpperCase().includes("S&P") || 
-                                         cleanLabel.toUpperCase().includes("DOW") || 
-                                         cleanLabel.toUpperCase().includes("NASDAQ") ||
-                                         cleanLabel.toUpperCase().includes("RUSSELL");
-
-                // Check if this ticker matches a participant
-                const participantInfo = participantMap[cleanLabel.toUpperCase()];
-
-                const dataset = {
+                datasets.push({
                     label: cleanLabel,
                     data: tickerData,
                     borderColor: colors[i-1] || '#ccc',
-                    borderWidth: isMarketBenchmark ? 4 : 2, 
-                    fill: false,
-                    tension: 0.1,
-                    pointRadius: 0,
-                    order: participantInfo ? participantInfo.order : 999, // Use leaderboard order
-                    isMarket: isMarketBenchmark
-                };
-                
-                allDatasets.push(dataset);
-                
-                // Track participant datasets (not market benchmarks) for averaging
-                if (!isMarketBenchmark) {
-                    participantDatasets.push(tickerData);
-                }
-            }
-
-            // Sort datasets: participants by leaderboard order, then market benchmarks, then OUCT average
-            allDatasets.sort((a, b) => {
-                if (a.isMarket && !b.isMarket) return 1;
-                if (!a.isMarket && b.isMarket) return -1;
-                return a.order - b.order;
-            });
-
-            // Calculate average of all participants at each time point
-            if (participantDatasets.length > 0) {
-                const avgData = rows.map((r, idx) => {
-                    const sum = participantDatasets.reduce((total, dataset) => total + (dataset[idx] || 0), 0);
-                    return sum / participantDatasets.length;
-                });
-
-                // Add participants average as a separate line
-                allDatasets.push({
-                    label: "OUCT Covalent Partners",
-                    data: avgData,
-                    borderColor: "#667eea",
-                    borderWidth: 3,
-                    borderDash: [5, 5],
-                    fill: false,
-                    tension: 0.1,
-                    pointRadius: 0,
-                    order: 1000 // Show at end
+                    borderWidth: cleanLabel.toUpperCase().includes("S&P") ? 4 : 2, 
+                    fill: false, tension: 0.1, pointRadius: 0
                 });
             }
 
             const ctx = document.getElementById('multiChart').getContext('2d');
             if (chartObj) chartObj.destroy();
             chartObj = new Chart(ctx, {
-                type: 'line',
-                data: { labels, datasets: allDatasets },
+                type: 'line', data: { labels, datasets },
                 options: { 
-                    responsive: true, 
-                    maintainAspectRatio: false,
-                    plugins: { 
-                        legend: { 
-                            position: 'bottom', 
-                            labels: { 
-                                boxWidth: 12, 
-                                font: { size: window.innerWidth < 480 ? 8 : 10 },
-                                padding: window.innerWidth < 480 ? 8 : 10
-                            } 
-                        },
-                        tooltip: { 
-                            mode: 'index', 
-                            intersect: false,
-                            titleFont: { size: 11 },
-                            bodyFont: { size: 10 }
-                        }
-                    },
-                    scales: { 
-                        y: { 
-                            ticks: { 
-                                callback: v => v.toFixed(1) + '%',
-                                font: { size: window.innerWidth < 480 ? 9 : 11 }
-                            }, 
-                            title: { display: true, text: 'Return (%)', font: { size: 11 } } 
-                        },
-                        x: { 
-                            ticks: { 
-                                maxTicksLimit: window.innerWidth < 480 ? 5 : 10,
-                                font: { size: window.innerWidth < 480 ? 9 : 11 }
-                            } 
-                        }
-                    },
-                    interaction: {
-                        mode: 'nearest',
-                        axis: 'x',
-                        intersect: false
-                    }
+                    responsive: true, maintainAspectRatio: false,
+                    plugins: { legend: { position: 'bottom', labels: { boxWidth: 12, font: { size: 10 } } } },
+                    scales: { y: { ticks: { callback: v => v.toFixed(1) + '%' } } }
                 }
             });
         } catch (e) { console.error("Chart Error:", e); }
     }
-
     update();
 </script>
 </body>
