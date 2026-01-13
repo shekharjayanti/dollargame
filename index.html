@@ -10,24 +10,38 @@
         body { font-family: 'Segoe UI', system-ui, sans-serif; background: var(--bg); padding: 20px; color: #333; }
         .dashboard { max-width: 1000px; margin: 0 auto; background: white; padding: 30px; border-radius: 20px; box-shadow: 0 10px 30px rgba(0,0,0,0.1); }
         header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 25px; border-bottom: 2px solid #eee; padding-bottom: 15px; }
+        
         .stat-card { 
-            background: var(--primary); /* Fallback */
             color: white; padding: 25px; border-radius: 15px; text-align: center; margin-bottom: 25px; 
-            transition: background 1s ease; /* Smooth color transition */
+            transition: background 1s ease; 
             box-shadow: 0 8px 15px rgba(0,0,0,0.1);
         }
+        /* Hall of Fame Gold style for 2025 Champion */
+        .stat-card.gold { 
+            background: linear-gradient(135deg, #bf953f, #fcf6ba, #b38728, #fbf5b7, #aa771c); 
+            color: #1a2a6c; 
+            border: 1px solid #d4af37; 
+        }
+
         .winner-name { font-size: 2.5em; font-weight: 800; margin: 5px 0; }
         .chart-container { height: 400px; margin-bottom: 30px; background: #fff; padding: 15px; border-radius: 12px; border: 1px solid #eee; }
-        table { width: 100%; border-collapse: collapse; }
+        
+        h2 { font-size: 1.2em; color: var(--primary); text-transform: uppercase; letter-spacing: 1px; margin-top: 40px; border-left: 5px solid var(--primary); padding-left: 15px; }
+        
+        table { width: 100%; border-collapse: collapse; margin-bottom: 30px; }
         th { text-align: left; padding: 12px; font-size: 0.8em; color: #888; text-transform: uppercase; border-bottom: 2px solid #eee; }
         td { padding: 15px 12px; border-bottom: 1px solid #f8f8f8; font-size: 1.1em; }
+        
         .ticker { font-family: monospace; background: #f0f7ff; color: #007bff; padding: 4px 8px; border-radius: 5px; font-weight: bold; }
         .pos { color: var(--win); font-weight: bold; }
         .neg { color: var(--loss); font-weight: bold; }
         .rocket { margin-left: 8px; font-size: 1.2em; filter: drop-shadow(0 0 3px gold); }
+        
         .benchmarks-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 15px; margin-top: 10px; }
         .benchmark-card { background: #f8f9fa; border-radius: 12px; padding: 15px; border: 1px solid #edf2f7; text-align: center; }
         .refresh-btn { background: var(--primary); color: white; border: none; padding: 10px 15px; border-radius: 8px; cursor: pointer; font-weight: 600; }
+        
+        .section-2025 { margin-top: 60px; padding-top: 40px; border-top: 3px double #eee; }
     </style>
 </head>
 <body>
@@ -37,41 +51,56 @@
         <button class="refresh-btn" onclick="update()">🚀 Update Live</button>
     </header>
 
-    <div id="leader-card"></div>
+    <div id="leader-card-2026"></div>
 
-    <h2>Performance Since Jan 1, 2026</h2>
+    <h2>Performance Trend (2026)</h2>
     <div class="chart-container">
         <canvas id="multiChart"></canvas>
     </div>
 
-    <h2>Leaderboard</h2>
-    <div id="participant-area">Connecting to your spreadsheet...</div>
+    <h2>2026 Leaderboard</h2>
+    <div id="participant-area-2026">Connecting to your spreadsheet...</div>
 
-    <h2>Market Benchmarks</h2>
+    <h2>Market Benchmarks (2026)</h2>
     <div id="market-area" class="benchmarks-grid"></div>
+
+    <div class="section-2025">
+        <h1 style="text-align: center; color: #7f8c8d; margin-bottom: 30px;">🗓️ 2025 Performance</h1>
+        <div id="champion-card-2025"></div>
+        <h2>2025 Final Leaderboard</h2>
+        <div id="participant-area-2025">Loading 2025 data...</div>
+    </div>
+
+    <div id="last-updated" style="text-align: center; margin-top: 40px; color: #bdc3c7; font-size: 0.8em;"></div>
 </div>
 
 <script>
     const SHEET_ID = '1sEP1zRqhjJqp_cuLvggNBjiPdjbrCpMr5DW-7rIBF_s';
-    const GID_MAIN = '1028487677';
+    const GID_2026 = '1028487677';
+    const GID_2025 = '869680458';
     const TAB_HISTORY = 'History';
     let chartObj = null;
 
-    // Helper for Dynamic Colors
     function getCardStyle(perf) {
         const intensity = Math.min(Math.abs(perf) / 0.15, 1);
         if (perf >= 0) {
-            // Fades from Dark Blue to Emerald Green
             return `linear-gradient(135deg, #1a2a6c, rgba(39, 174, 96, ${intensity}))`;
         } else {
-            // Fades from Dark Blue to Fire Red
             return `linear-gradient(135deg, #1a2a6c, rgba(231, 76, 60, ${intensity}))`;
         }
     }
 
     async function update() {
+        // Fetch data for both years and chart
+        fetchYearData(GID_2026, '2026');
+        fetchYearData(GID_2025, '2025');
+        fetchHistory();
+        document.getElementById('last-updated').innerText = "Last Updated: " + new Date().toLocaleTimeString();
+    }
+
+    async function fetchYearData(gid, year) {
         try {
-            const res = await fetch(`https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:json&gid=${GID_MAIN}`);
+            const res = await fetch(`https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:json&gid=${gid}`);
             const text = await res.text();
             const json = JSON.parse(text.substring(text.indexOf('{'), text.lastIndexOf('}') + 1));
             const rows = json.table.rows;
@@ -86,46 +115,78 @@
                     const ticker = r.c[1].v || "";
                     if(ticker === 'Ticker' || name === 'Participant') return;
 
-                    const price = r.c[3] ? (r.c[3].f || r.c[3].v) : '0';
-                    const perfRaw = r.c[4] ? r.c[4].v : 0;
-                    const perfDisp = (perfRaw * 100).toFixed(2) + '%';
-                    const item = { name, ticker, price, perfRaw, perfDisp };
-                    
-                    if (participants.length < 10) participants.push(item);
-                    else {
-                        benchmarks.push(item);
-                        if (name.toUpperCase().includes("S&P") || ticker.includes("INX")) sp500Perf = perfRaw;
+                    if (year === '2026') {
+                        const price = r.c[3] ? (r.c[3].f || r.c[3].v) : '0';
+                        const perfRaw = r.c[4] ? r.c[4].v : 0;
+                        const item = { name, ticker, price, perfRaw, perfDisp: (perfRaw * 100).toFixed(2) + '%' };
+                        if (participants.length < 10) participants.push(item);
+                        else {
+                            benchmarks.push(item);
+                            if (name.toUpperCase().includes("S&P") || ticker.includes("INX")) sp500Perf = perfRaw;
+                        }
+                    } else {
+                        // 2025 Mapping: E (Index 4) is Ongoing, F (Index 5) is Final
+                        const ongoingRaw = r.c[4] ? r.c[4].v : 0;
+                        const finalRaw = r.c[5] ? r.c[5].v : 0;
+                        participants.push({ 
+                            name, ticker, 
+                            ongoing: (ongoingRaw * 100).toFixed(2) + '%', 
+                            final: (finalRaw * 100).toFixed(2) + '%',
+                            finalValue: finalRaw
+                        });
                     }
                 }
             });
 
-            participants.sort((a, b) => b.perfRaw - a.perfRaw);
-            
-            // Render Leaderboard
-            let pTable = `<table><tr><th>#</th><th>Name</th><th>Ticker</th><th style="text-align:right">Price</th><th style="text-align:right">Gain</th></tr>`;
-            participants.forEach((p, i) => {
-                const color = p.perfRaw >= 0 ? 'pos' : 'neg';
-                pTable += `<tr><td>#${i+1}</td><td><strong>${p.name}</strong>${p.perfRaw > sp500Perf ? '<span class="rocket">🚀</span>' : ''}</td><td><span class="ticker">${p.ticker}</span></td><td style="text-align:right">$${p.price}</td><td style="text-align:right" class="${color}">${(p.perfRaw > 0 ? '+' : '') + p.perfDisp}</td></tr>`;
-            });
-            document.getElementById('participant-area').innerHTML = pTable + '</table>';
-
-            // Update Winner Card Dynamically
-            const leader = participants[0];
-            const dynamicBG = getCardStyle(leader.perfRaw);
-            document.getElementById('leader-card').innerHTML = `
-                <div class="stat-card" style="background: ${dynamicBG}">
-                    <div style="text-transform: uppercase; font-size: 0.8em; letter-spacing: 2px;">Alpha Champion</div>
-                    <div class="winner-name">👑 ${leader.name}</div>
-                    <div style="font-size:1.2em; color:var(--accent); font-weight: bold;">${leader.ticker} • ${leader.perfDisp}</div>
-                </div>`;
-
-            document.getElementById('market-area').innerHTML = benchmarks.map(b => `
-                <div class="benchmark-card"><div style="font-weight:700;">${b.name}</div><div class="${b.perfRaw >= 0 ? 'pos' : 'neg'}">${(b.perfRaw > 0 ? '+' : '') + b.perfDisp}</div></div>`).join('');
-
-            fetchHistory();
-        } catch (e) { 
-            document.getElementById('participant-area').innerHTML = "Sync Error. Please verify the sheet is 'Published to Web'.";
+            if (year === '2026') {
+                participants.sort((a, b) => b.perfRaw - a.perfRaw);
+                render2026(participants, benchmarks, sp500Perf);
+            } else {
+                participants.sort((a, b) => b.finalValue - a.finalValue);
+                render2025(participants);
+            }
+        } catch (e) {
+            console.error(`Error fetching ${year} data:`, e);
         }
+    }
+
+    function render2026(participants, benchmarks, sp500Perf) {
+        const leader = participants[0];
+        document.getElementById('leader-card-2026').innerHTML = `
+            <div class="stat-card" style="background: ${getCardStyle(leader.perfRaw)}">
+                <div style="text-transform: uppercase; font-size: 0.8em; letter-spacing: 2px;">2026 Alpha Champion</div>
+                <div class="winner-name">👑 ${leader.name}</div>
+                <div style="font-size:1.2em; color:var(--accent); font-weight: bold;">${leader.ticker} • ${leader.perfDisp}</div>
+            </div>`;
+
+        let html = `<table><tr><th>#</th><th>Name</th><th>Ticker</th><th style="text-align:right">Price</th><th style="text-align:right">Gain</th></tr>`;
+        participants.forEach((p, i) => {
+            html += `<tr><td>#${i+1}</td><td><strong>${p.name}</strong>${p.perfRaw > sp500Perf ? '<span class="rocket">🚀</span>' : ''}</td><td><span class="ticker">${p.ticker}</span></td><td style="text-align:right">$${p.price}</td><td style="text-align:right" class="${p.perfRaw >= 0 ? 'pos' : 'neg'}">${(p.perfRaw > 0 ? '+' : '') + p.perfDisp}</td></tr>`;
+        });
+        document.getElementById('participant-area-2026').innerHTML = html + `</table>`;
+        document.getElementById('market-area').innerHTML = benchmarks.map(b => `<div class="benchmark-card"><div style="font-weight:700;">${b.name}</div><div class="${b.perfRaw >= 0 ? 'pos' : 'neg'}">${(b.perfRaw > 0 ? '+' : '') + b.perfDisp}</div></div>`).join('');
+    }
+
+    function render2025(participants) {
+        const champion = participants[0];
+        document.getElementById('champion-card-2025').innerHTML = `
+            <div class="stat-card gold">
+                <div style="text-transform: uppercase; font-size: 0.8em; letter-spacing: 2px; font-weight: bold;">🏆 2025 Champion</div>
+                <div class="winner-name">${champion.name}</div>
+                <div style="font-size:1.2em; font-weight: bold;">Final Performance: ${champion.final}</div>
+            </div>`;
+
+        let html = `<table><tr><th>Rank</th><th>Participant</th><th>Ticker</th><th style="text-align:right">Ongoing Performance</th><th style="text-align:right">Final Performance</th></tr>`;
+        participants.forEach((p, i) => {
+            html += `<tr>
+                <td style="font-weight: bold; color: #7f8c8d;">#${i+1}</td>
+                <td><strong>${p.name}</strong></td>
+                <td><span class="ticker">${p.ticker}</span></td>
+                <td style="text-align:right">${p.ongoing}</td>
+                <td style="text-align:right; font-weight: bold;" class="${p.finalValue >= 0 ? 'pos' : 'neg'}">${p.final}</td>
+            </tr>`;
+        });
+        document.getElementById('participant-area-2025').innerHTML = html + `</table>`;
     }
 
     async function fetchHistory() {
