@@ -11,12 +11,14 @@
         .dashboard { max-width: 1000px; margin: 0 auto; background: white; padding: 30px; border-radius: 20px; box-shadow: 0 10px 30px rgba(0,0,0,0.1); }
         header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 25px; border-bottom: 2px solid #eee; padding-bottom: 15px; }
         
+        /* Main Leader Stat Card */
         .stat-card { 
             color: white; padding: 25px; border-radius: 15px; text-align: center; margin-bottom: 25px; 
-            transition: background 1s ease; 
+            transition: background 1.5s ease; /* Smooth color shift */
             box-shadow: 0 8px 15px rgba(0,0,0,0.1);
         }
-        /* Hall of Fame Gold style for 2025 Champion */
+        
+        /* 2025 Gold Hall of Fame Card */
         .stat-card.gold { 
             background: linear-gradient(135deg, #bf953f, #fcf6ba, #b38728, #fbf5b7, #aa771c); 
             color: #1a2a6c; 
@@ -39,8 +41,12 @@
         
         .benchmarks-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 15px; margin-top: 10px; }
         .benchmark-card { background: #f8f9fa; border-radius: 12px; padding: 15px; border: 1px solid #edf2f7; text-align: center; }
-        .refresh-btn { background: var(--primary); color: white; border: none; padding: 10px 15px; border-radius: 8px; cursor: pointer; font-weight: 600; }
         
+        /* Average Box Highlight */
+        .avg-card { background: #1a2a6c; color: white; border: 1px solid #1a2a6c; }
+        .avg-card .ticker { background: rgba(255,255,255,0.1); color: white; }
+
+        .refresh-btn { background: var(--primary); color: white; border: none; padding: 10px 15px; border-radius: 8px; cursor: pointer; font-weight: 600; }
         .section-2025 { margin-top: 60px; padding-top: 40px; border-top: 3px double #eee; }
     </style>
 </head>
@@ -61,14 +67,14 @@
     <h2>2026 Leaderboard</h2>
     <div id="participant-area-2026">Connecting to your spreadsheet...</div>
 
-    <h2>Market Benchmarks (2026)</h2>
+    <h2>Market & Fund Benchmarks (2026)</h2>
     <div id="market-area" class="benchmarks-grid"></div>
 
     <div class="section-2025">
         <h1 style="text-align: center; color: #7f8c8d; margin-bottom: 30px;">🗓️ 2025 Performance</h1>
         <div id="champion-card-2025"></div>
         <h2>2025 Final Leaderboard</h2>
-        <div id="participant-area-2025">Loading 2025 data...</div>
+        <div id="participant-area-2025">Loading historical data...</div>
     </div>
 
     <div id="last-updated" style="text-align: center; margin-top: 40px; color: #bdc3c7; font-size: 0.8em;"></div>
@@ -81,17 +87,19 @@
     const TAB_HISTORY = 'History';
     let chartObj = null;
 
-    function getCardStyle(perf) {
-        const intensity = Math.min(Math.abs(perf) / 0.15, 1);
+    // Logic for the Dynamic Color Shift (Green to Red)
+    function getDynamicStyle(perf) {
+        const intensity = Math.min(Math.abs(perf) / 0.15, 1); // Max color at 15% gain/loss
         if (perf >= 0) {
+            // Transitions from Navy Blue to Emerald Green
             return `linear-gradient(135deg, #1a2a6c, rgba(39, 174, 96, ${intensity}))`;
         } else {
+            // Transitions from Navy Blue to Crimson Red
             return `linear-gradient(135deg, #1a2a6c, rgba(231, 76, 60, ${intensity}))`;
         }
     }
 
     async function update() {
-        // Fetch data for both years and chart
         fetchYearData(GID_2026, '2026');
         fetchYearData(GID_2025, '2025');
         fetchHistory();
@@ -125,7 +133,6 @@
                             if (name.toUpperCase().includes("S&P") || ticker.includes("INX")) sp500Perf = perfRaw;
                         }
                     } else {
-                        // 2025 Mapping: E (Index 4) is Ongoing, F (Index 5) is Final
                         const ongoingRaw = r.c[4] ? r.c[4].v : 0;
                         const finalRaw = r.c[5] ? r.c[5].v : 0;
                         participants.push({ 
@@ -145,16 +152,19 @@
                 participants.sort((a, b) => b.finalValue - a.finalValue);
                 render2025(participants);
             }
-        } catch (e) {
-            console.error(`Error fetching ${year} data:`, e);
-        }
+        } catch (e) { console.error(`Error fetching ${year} data:`, e); }
     }
 
     function render2026(participants, benchmarks, sp500Perf) {
+        // Calculate Average Performance
+        const totalPerf = participants.reduce((sum, p) => sum + p.perfRaw, 0);
+        const avgPerf = totalPerf / participants.length;
+        const avgDisp = (avgPerf * 100).toFixed(2) + '%';
+
         const leader = participants[0];
         document.getElementById('leader-card-2026').innerHTML = `
-            <div class="stat-card" style="background: ${getCardStyle(leader.perfRaw)}">
-                <div style="text-transform: uppercase; font-size: 0.8em; letter-spacing: 2px;">2026 Alpha Champion</div>
+            <div class="stat-card" style="background: ${getDynamicStyle(leader.perfRaw)}">
+                <div style="text-transform: uppercase; font-size: 0.8em; letter-spacing: 2px;">2026 Leader</div>
                 <div class="winner-name">👑 ${leader.name}</div>
                 <div style="font-size:1.2em; color:var(--accent); font-weight: bold;">${leader.ticker} • ${leader.perfDisp}</div>
             </div>`;
@@ -164,7 +174,22 @@
             html += `<tr><td>#${i+1}</td><td><strong>${p.name}</strong>${p.perfRaw > sp500Perf ? '<span class="rocket">🚀</span>' : ''}</td><td><span class="ticker">${p.ticker}</span></td><td style="text-align:right">$${p.price}</td><td style="text-align:right" class="${p.perfRaw >= 0 ? 'pos' : 'neg'}">${(p.perfRaw > 0 ? '+' : '') + p.perfDisp}</td></tr>`;
         });
         document.getElementById('participant-area-2026').innerHTML = html + `</table>`;
-        document.getElementById('market-area').innerHTML = benchmarks.map(b => `<div class="benchmark-card"><div style="font-weight:700;">${b.name}</div><div class="${b.perfRaw >= 0 ? 'pos' : 'neg'}">${(b.perfRaw > 0 ? '+' : '') + b.perfDisp}</div></div>`).join('');
+
+        // Render Benchmarks + Group Average Box
+        let benchmarkHtml = benchmarks.map(b => `
+            <div class="benchmark-card">
+                <div style="font-weight:700;">${b.name}</div>
+                <div class="${b.perfRaw >= 0 ? 'pos' : 'neg'}">${(b.perfRaw > 0 ? '+' : '') + b.perfDisp}</div>
+            </div>`).join('');
+
+        benchmarkHtml += `
+            <div class="benchmark-card avg-card">
+                <div style="font-weight:700;">Group Average</div>
+                <div class="ticker" style="font-size:0.75em; margin: 4px 0;">Alpha Fund Mean</div>
+                <div style="font-size:1.2em; font-weight:bold;">${(avgPerf > 0 ? '+' : '') + avgDisp}</div>
+            </div>`;
+            
+        document.getElementById('market-area').innerHTML = benchmarkHtml;
     }
 
     function render2025(participants) {
@@ -210,26 +235,11 @@
                     const firstVal = rows[0].c[i]?.v;
                     return (firstVal && val) ? ((val - firstVal) / firstVal) * 100 : 0;
                 });
-
-                datasets.push({
-                    label: cleanLabel,
-                    data: tickerData,
-                    borderColor: colors[i-1] || '#ccc',
-                    borderWidth: cleanLabel.toUpperCase().includes("S&P") ? 4 : 2, 
-                    fill: false, tension: 0.1, pointRadius: 0
-                });
+                datasets.push({ label: cleanLabel, data: tickerData, borderColor: colors[i-1] || '#ccc', borderWidth: cleanLabel.toUpperCase().includes("S&P") ? 4 : 2, fill: false, tension: 0.1, pointRadius: 0 });
             }
-
             const ctx = document.getElementById('multiChart').getContext('2d');
             if (chartObj) chartObj.destroy();
-            chartObj = new Chart(ctx, {
-                type: 'line', data: { labels, datasets },
-                options: { 
-                    responsive: true, maintainAspectRatio: false,
-                    plugins: { legend: { position: 'bottom', labels: { boxWidth: 12, font: { size: 10 } } } },
-                    scales: { y: { ticks: { callback: v => v.toFixed(1) + '%' } } }
-                }
-            });
+            chartObj = new Chart(ctx, { type: 'line', data: { labels, datasets }, options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'bottom', labels: { boxWidth: 12, font: { size: 10 } } } }, scales: { y: { ticks: { callback: v => v.toFixed(1) + '%' } } } } });
         } catch (e) { console.error("Chart Error:", e); }
     }
     update();
