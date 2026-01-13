@@ -359,14 +359,14 @@
                     <div style="font-size:1.2em; color:var(--accent)">${leader.ticker} • ${leader.perfDisp}</div>
                 </div>`;
 
-            fetchHistory();
+            fetchHistory(participants);
         } catch (e) { 
             console.error(e);
             document.getElementById('participant-area').innerHTML = "Sync Error. Please verify the sheet is 'Published to Web'.";
         }
     }
 
-    async function fetchHistory() {
+    async function fetchHistory(participants) {
         try {
             const res = await fetch(`https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:json&sheet=${TAB_HISTORY}`);
             const text = await res.text();
@@ -379,7 +379,13 @@
             const labels = rows.map(r => r.c[0]?.f || '');
             const colors = ['#1a2a6c', '#b21f1f', '#fdbb2d', '#27ae60', '#3498db', '#9b59b6', '#e67e22', '#1abc9c', '#2c3e50', '#7f8c8d'];
 
-            const datasets = [];
+            // Create a map of ticker to participant for ordering
+            const participantMap = {};
+            participants.forEach((p, idx) => {
+                participantMap[p.ticker.toUpperCase()] = { ...p, order: idx };
+            });
+
+            const allDatasets = [];
             const participantDatasets = []; // Track participant datasets for averaging
             
             for (let i = 1; i < cols.length; i++) {
@@ -398,6 +404,9 @@
                                          cleanLabel.toUpperCase().includes("NASDAQ") ||
                                          cleanLabel.toUpperCase().includes("RUSSELL");
 
+                // Check if this ticker matches a participant
+                const participantInfo = participantMap[cleanLabel.toUpperCase()];
+
                 const dataset = {
                     label: cleanLabel,
                     data: tickerData,
@@ -405,16 +414,25 @@
                     borderWidth: isMarketBenchmark ? 4 : 2, 
                     fill: false,
                     tension: 0.1,
-                    pointRadius: 0
+                    pointRadius: 0,
+                    order: participantInfo ? participantInfo.order : 999, // Use leaderboard order
+                    isMarket: isMarketBenchmark
                 };
                 
-                datasets.push(dataset);
+                allDatasets.push(dataset);
                 
                 // Track participant datasets (not market benchmarks) for averaging
                 if (!isMarketBenchmark) {
                     participantDatasets.push(tickerData);
                 }
             }
+
+            // Sort datasets: participants by leaderboard order, then market benchmarks, then OUCT average
+            allDatasets.sort((a, b) => {
+                if (a.isMarket && !b.isMarket) return 1;
+                if (!a.isMarket && b.isMarket) return -1;
+                return a.order - b.order;
+            });
 
             // Calculate average of all participants at each time point
             if (participantDatasets.length > 0) {
@@ -424,7 +442,7 @@
                 });
 
                 // Add participants average as a separate line
-                datasets.push({
+                allDatasets.push({
                     label: "OUCT Covalent Partners",
                     data: avgData,
                     borderColor: "#667eea",
@@ -432,7 +450,8 @@
                     borderDash: [5, 5],
                     fill: false,
                     tension: 0.1,
-                    pointRadius: 0
+                    pointRadius: 0,
+                    order: 1000 // Show at end
                 });
             }
 
@@ -440,7 +459,7 @@
             if (chartObj) chartObj.destroy();
             chartObj = new Chart(ctx, {
                 type: 'line',
-                data: { labels, datasets },
+                data: { labels, datasets: allDatasets },
                 options: { 
                     responsive: true, 
                     maintainAspectRatio: false,
