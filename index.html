@@ -281,14 +281,30 @@
 
     <h2>Market Benchmarks</h2>
     <div id="market-area" class="benchmarks-grid">Loading...</div>
+
+    <h2>2025 Performance</h2>
+    <div class="table-wrapper">
+        <div id="participant-2025-area">Loading 2025 data...</div>
+    </div>
+
+    <h2>2025 Market Benchmarks</h2>
+    <div id="market-2025-area" class="benchmarks-grid">Loading...</div>
 </div>
 
 <script>
     const SHEET_ID = '1sEP1zRqhjJqp_cuLvggNBjiPdjbrCpMr5DW-7rIBF_s';
     const GID_MAIN = '1028487677';
+    const GID_2025 = '869680458';
     const TAB_HISTORY = 'History';
 
     let chartObj = null;
+
+    // Market returns for 2025
+    const market2025 = {
+        'S&P 500 (.INX)': 0.1639,
+        'Nasdaq Composite (.IXIC)': 0.2034,
+        'Dow Jones Industrial (.DJI)': 0.1297
+    };
 
     async function update() {
         console.log('Starting update...');
@@ -361,10 +377,33 @@
 
             document.getElementById('market-area').innerHTML = benchmarks.map(b => {
                 const isOUCT = b.name === 'OUCT Covalent Partners';
+                
+                // Dynamic color calculation for OUCT based on performance
+                let bgColor = '';
+                let borderColor = '';
+                if (isOUCT) {
+                    const perf = b.perfRaw * 100; // Convert to percentage
+                    if (perf >= 0) {
+                        // Green shades for positive returns (0% to 20%+)
+                        const intensity = Math.min(perf / 20, 1); // Cap at 20%
+                        const lightness = 95 - (intensity * 45); // 95% to 50%
+                        const saturation = 40 + (intensity * 50); // 40% to 90%
+                        bgColor = `hsl(140, ${saturation}%, ${lightness}%)`;
+                        borderColor = `hsl(140, ${saturation + 10}%, ${lightness - 10}%)`;
+                    } else {
+                        // Red shades for negative returns (0% to -20%)
+                        const intensity = Math.min(Math.abs(perf) / 20, 1); // Cap at -20%
+                        const lightness = 95 - (intensity * 45); // 95% to 50%
+                        const saturation = 40 + (intensity * 50); // 40% to 90%
+                        bgColor = `hsl(0, ${saturation}%, ${lightness}%)`;
+                        borderColor = `hsl(0, ${saturation + 10}%, ${lightness - 10}%)`;
+                    }
+                }
+                
                 return `
-                <div class="benchmark-card" ${isOUCT ? 'style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; border: 2px solid #667eea;"' : ''}>
-                    <div style="font-weight:700; ${isOUCT ? 'color: white;' : ''}">${b.name}</div>
-                    <div class="${isOUCT ? '' : (b.perfRaw >= 0 ? 'pos' : 'neg')}" ${isOUCT ? 'style="color: white; font-weight: bold;"' : ''}>${(b.perfRaw > 0 ? '+' : '') + b.perfDisp}</div>
+                <div class="benchmark-card" ${isOUCT ? `style="background: ${bgColor}; color: #333; border: 2px solid ${borderColor};"` : ''}>
+                    <div style="font-weight:700; ${isOUCT ? 'color: #333;' : ''}">${b.name}</div>
+                    <div class="${isOUCT ? '' : (b.perfRaw >= 0 ? 'pos' : 'neg')}" ${isOUCT ? 'style="color: #333; font-weight: bold; font-size: 1.1em;"' : ''}>${(b.perfRaw > 0 ? '+' : '') + b.perfDisp}</div>
                 </div>`;
             }).join('');
 
@@ -377,10 +416,125 @@
                 </div>`;
 
             fetchHistory(participants);
+            fetch2025Data();
         } catch (e) { 
             console.error('Error in update():', e);
             document.getElementById('participant-area').innerHTML = `<div class="error-msg">❌ Sync Error: ${e.message}<br><br>Please verify the sheet is 'Published to Web'.</div>`;
             document.getElementById('market-area').innerHTML = `<div class="error-msg">Unable to load market data</div>`;
+        }
+    }
+
+    async function fetch2025Data() {
+        console.log('Fetching 2025 data...');
+        try {
+            const res = await fetch(`https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:json&gid=${GID_2025}`);
+            const text = await res.text();
+            const json = JSON.parse(text.substring(text.indexOf('{'), text.lastIndexOf('}') + 1));
+            const rows = json.table.rows;
+            
+            console.log('Fetched 2025 rows:', rows.length);
+            
+            let participants2025 = [];
+
+            rows.forEach((r, i) => {
+                if(r.c && r.c[0] && r.c[1]) {
+                    const name = r.c[0].v || "";
+                    const ticker = r.c[1].v || "";
+                    if(ticker === 'Ticker' || name === 'Participant' || ticker === '' || name === '') return;
+
+                    const ongoingRaw = r.c[4] ? r.c[4].v : 0;
+                    const ongoingDisp = (ongoingRaw * 100).toFixed(2) + '%';
+                    
+                    const finalRaw = r.c[5] ? r.c[5].v : 0;
+                    const finalDisp = (finalRaw * 100).toFixed(2) + '%';
+
+                    participants2025.push({ 
+                        name, 
+                        ticker, 
+                        ongoingRaw, 
+                        ongoingDisp,
+                        finalRaw,
+                        finalDisp
+                    });
+                }
+            });
+
+            participants2025.sort((a, b) => b.finalRaw - a.finalRaw);
+            
+            console.log('2025 Participants:', participants2025.length);
+            
+            // Calculate average final performance
+            const avgFinal = participants2025.reduce((sum, p) => sum + p.finalRaw, 0) / participants2025.length;
+            const avgFinalDisp = (avgFinal * 100).toFixed(2) + '%';
+            
+            console.log('2025 Average final performance:', avgFinalDisp);
+            
+            // Create 2025 leaderboard table
+            let pTable2025 = `<table><tr><th>#</th><th>Name</th><th>Ticker</th><th style="text-align:right">Ongoing</th><th style="text-align:right">Final</th></tr>`;
+            participants2025.forEach((p, i) => {
+                const ongoingColor = p.ongoingRaw >= 0 ? 'pos' : 'neg';
+                const finalColor = p.finalRaw >= 0 ? 'pos' : 'neg';
+                const rankLabel = i === 0 ? '🏆' : `#${i+1}`;
+                pTable2025 += `<tr>
+                    <td>${rankLabel}</td>
+                    <td><strong>${p.name}</strong></td>
+                    <td><span class="ticker">${p.ticker}</span></td>
+                    <td style="text-align:right" class="${ongoingColor}">${(p.ongoingRaw > 0 ? '+' : '') + p.ongoingDisp}</td>
+                    <td style="text-align:right" class="${finalColor}">${(p.finalRaw > 0 ? '+' : '') + p.finalDisp}</td>
+                </tr>`;
+            });
+            document.getElementById('participant-2025-area').innerHTML = pTable2025 + '</table>';
+
+            // Build 2025 market benchmarks with OUCT average
+            const benchmarks2025 = [];
+            for (const [name, perfRaw] of Object.entries(market2025)) {
+                benchmarks2025.push({
+                    name,
+                    perfRaw,
+                    perfDisp: (perfRaw * 100).toFixed(2) + '%'
+                });
+            }
+            
+            benchmarks2025.push({
+                name: 'OUCT Covalent Partners',
+                perfRaw: avgFinal,
+                perfDisp: avgFinalDisp
+            });
+
+            document.getElementById('market-2025-area').innerHTML = benchmarks2025.map(b => {
+                const isOUCT = b.name === 'OUCT Covalent Partners';
+                
+                // Dynamic color calculation for OUCT based on performance
+                let bgColor = '';
+                let borderColor = '';
+                if (isOUCT) {
+                    const perf = b.perfRaw * 100;
+                    if (perf >= 0) {
+                        const intensity = Math.min(perf / 20, 1);
+                        const lightness = 95 - (intensity * 45);
+                        const saturation = 40 + (intensity * 50);
+                        bgColor = `hsl(140, ${saturation}%, ${lightness}%)`;
+                        borderColor = `hsl(140, ${saturation + 10}%, ${lightness - 10}%)`;
+                    } else {
+                        const intensity = Math.min(Math.abs(perf) / 20, 1);
+                        const lightness = 95 - (intensity * 45);
+                        const saturation = 40 + (intensity * 50);
+                        bgColor = `hsl(0, ${saturation}%, ${lightness}%)`;
+                        borderColor = `hsl(0, ${saturation + 10}%, ${lightness - 10}%)`;
+                    }
+                }
+                
+                return `
+                <div class="benchmark-card" ${isOUCT ? `style="background: ${bgColor}; color: #333; border: 2px solid ${borderColor};"` : ''}>
+                    <div style="font-weight:700; ${isOUCT ? 'color: #333;' : ''}">${b.name}</div>
+                    <div class="${isOUCT ? '' : (b.perfRaw >= 0 ? 'pos' : 'neg')}" ${isOUCT ? 'style="color: #333; font-weight: bold; font-size: 1.1em;"' : ''}>${(b.perfRaw > 0 ? '+' : '') + b.perfDisp}</div>
+                </div>`;
+            }).join('');
+
+        } catch (e) { 
+            console.error('Error fetching 2025 data:', e);
+            document.getElementById('participant-2025-area').innerHTML = `<div class="error-msg">❌ Error loading 2025 data: ${e.message}</div>`;
+            document.getElementById('market-2025-area').innerHTML = `<div class="error-msg">Unable to load 2025 market data</div>`;
         }
     }
 
