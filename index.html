@@ -341,7 +341,7 @@
                     <div class="${b.perfRaw >= 0 ? 'pos' : 'neg'}">${(b.perfRaw > 0 ? '+' : '') + b.perfDisp}</div>
                 </div>`).join('') + `
                 <div class="benchmark-card" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; border: 2px solid #667eea;">
-                    <div style="font-weight:700;">Participants Average</div>
+                    <div style="font-weight:700;">OUCT Covalent Partners</div>
                     <div style="color: white; font-weight: bold;">${(avgPerf > 0 ? '+' : '') + avgPerfDisp}</div>
                 </div>`;
 
@@ -419,7 +419,7 @@
 
                 // Add participants average as a separate line
                 datasets.push({
-                    label: "Participants Avg",
+                    label: "OUCT Covalent Partners",
                     data: avgData,
                     borderColor: "#667eea",
                     borderWidth: 3,
