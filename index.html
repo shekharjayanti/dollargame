@@ -59,57 +59,18 @@
         }
         
         .stat-card { 
+            background: linear-gradient(135deg, #1a2a6c, #b21f1f); 
             color: white; 
             padding: 25px; 
             border-radius: 15px; 
-            margin-bottom: 20px;
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 30px;
-        }
-        
-        .stat-section {
-            padding: 15px;
-            text-align: center;
-        }
-        
-        .stat-section:first-child {
-            border-right: 2px solid rgba(255,255,255,0.3);
-        }
-        
-        .stat-label {
-            font-size: 0.8em;
-            text-transform: uppercase;
-            letter-spacing: 1.5px;
-            opacity: 0.95;
-            margin-bottom: 12px;
-            font-weight: 600;
+            text-align: center; 
+            margin-bottom: 25px;
         }
         
         .winner-name { 
-            font-size: 2em; 
+            font-size: 2.5em; 
             font-weight: 800; 
-            margin: 8px 0;
-            word-wrap: break-word;
-        }
-        
-        .winner-ticker {
-            font-size: 1.1em;
-            color: var(--accent);
-            font-weight: 600;
-            margin-top: 5px;
-        }
-        
-        .ouct-return {
-            font-size: 2.5em;
-            font-weight: 800;
-            margin: 8px 0;
-        }
-        
-        .ouct-label {
-            font-size: 0.9em;
-            opacity: 0.9;
-            margin-top: 5px;
+            margin: 5px 0;
         }
         
         .chart-container { 
@@ -539,7 +500,11 @@
                     <div style="font-weight:700;">${b.name}</div>
                     <div class="${b.perfRaw >= 0 ? 'pos' : 'neg'}">${(b.perfRaw > 0 ? '+' : '') + b.perfDisp}</div>
                 </div>`;
-            }).join('');
+            }).join('') + `
+                <div class="benchmark-card" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; border: 2px solid #667eea;">
+                    <div style="font-weight:700;">OUCT Covalent Partners</div>
+                    <div style="color: white; font-weight: bold; font-size: 1.1em;">${(avgPerf > 0 ? '+' : '') + avgPerfDisp}</div>
+                </div>`;
 
             fetchHistory(participants);
             fetch2025Data();
