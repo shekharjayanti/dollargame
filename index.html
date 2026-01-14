@@ -3,430 +3,91 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>The $ Game - Alpha Dashboard</title>
+    <title>OUCT Covalent Partners - Alpha Dashboard</title>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
-        :root { 
-            --primary: #1a2a6c; 
-            --win: #27ae60; 
-            --loss: #e74c3c; 
-            --accent: #fdbb2d; 
-            --bg: #f4f7f6; 
-        }
-        
-        * {
-            box-sizing: border-box;
-        }
-        
-        body { 
-            font-family: 'Segoe UI', system-ui, sans-serif; 
-            background: var(--bg); 
-            padding: 10px; 
-            color: #333;
-            margin: 0;
-        }
-        
-        .dashboard { 
-            max-width: 1000px; 
-            margin: 0 auto; 
-            background: white; 
-            padding: 20px; 
-            border-radius: 15px; 
-            box-shadow: 0 10px 30px rgba(0,0,0,0.1); 
-        }
-        
-        header { 
-            display: flex; 
-            justify-content: space-between; 
-            align-items: center; 
-            margin-bottom: 20px; 
-            border-bottom: 2px solid #eee; 
-            padding-bottom: 15px;
-            flex-wrap: wrap;
-            gap: 10px;
-        }
-        
-        h1 {
-            font-size: 1.5em;
-            margin: 0;
-            flex: 1;
-            min-width: 200px;
-        }
-        
-        h2 {
-            font-size: 1.2em;
-            margin: 20px 0 15px 0;
-        }
-        
+        :root { --primary: #1a2a6c; --win: #27ae60; --loss: #e74c3c; --accent: #fdbb2d; --bg: #f4f7f6; }
+        body { font-family: 'Segoe UI', system-ui, sans-serif; background: var(--bg); padding: 20px; color: #333; }
+        .dashboard { max-width: 1000px; margin: 0 auto; background: white; padding: 30px; border-radius: 20px; box-shadow: 0 10px 30px rgba(0,0,0,0.1); }
+        header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 25px; border-bottom: 2px solid #eee; padding-bottom: 15px; }
         .stat-card { 
-            background: linear-gradient(135deg, #1a2a6c, #b21f1f); 
-            color: white; 
-            padding: 20px; 
-            border-radius: 15px; 
-            text-align: center; 
-            margin-bottom: 20px; 
+            color: white; padding: 25px; border-radius: 15px; text-align: center; margin-bottom: 25px; 
+            transition: background 1.5s ease; 
+            box-shadow: 0 8px 15px rgba(0,0,0,0.1);
         }
-        
-        .winner-name { 
-            font-size: 1.8em; 
-            font-weight: 800; 
-            margin: 5px 0;
-            word-wrap: break-word;
-        }
-        
-        .chart-container { 
-            height: 300px; 
-            margin-bottom: 25px; 
-            background: #fff; 
-            padding: 10px; 
-            border-radius: 12px; 
-            border: 1px solid #eee;
-            position: relative;
-        }
-        
-        .table-wrapper {
-            overflow-x: auto;
-            -webkit-overflow-scrolling: touch;
-            margin-bottom: 20px;
-        }
-        
-        table { 
-            width: 100%; 
-            border-collapse: collapse;
-            min-width: 500px;
-        }
-        
-        th { 
-            text-align: left; 
-            padding: 10px 8px; 
-            font-size: 0.75em; 
-            color: #888; 
-            text-transform: uppercase; 
-            border-bottom: 2px solid #eee;
-            white-space: nowrap;
-        }
-        
-        td { 
-            padding: 12px 8px; 
-            border-bottom: 1px solid #f8f8f8; 
-            font-size: 0.95em;
-            height: 50px;
-            vertical-align: middle;
-        }
-        
-        .ticker { 
-            font-family: monospace; 
-            background: #f0f7ff; 
-            color: #007bff; 
-            padding: 4px 10px; 
-            border-radius: 6px; 
-            font-weight: bold;
-            font-size: 1.05em;
-            white-space: nowrap;
-        }
-        
-        .pos { 
-            color: var(--win); 
-            font-weight: bold; 
-        }
-        
-        .neg { 
-            color: var(--loss); 
-            font-weight: bold; 
-        }
-        
-        .rocket { 
-            margin-left: 5px; 
-            filter: drop-shadow(0 0 3px gold);
-            display: inline-block;
-            transition: font-size 0.3s ease;
-        }
-        
-        .section-divider {
-            margin: 50px 0 40px 0;
-            padding: 20px;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            border-radius: 15px;
-            text-align: center;
-            color: white;
-        }
-        
-        .section-divider h2 {
-            margin: 0;
-            font-size: 1.8em;
-            font-weight: 800;
-            text-transform: uppercase;
-            letter-spacing: 2px;
-        }
-        
-        .year-badge {
-            display: inline-block;
-            background: rgba(255,255,255,0.2);
-            padding: 8px 20px;
-            border-radius: 25px;
-            margin-top: 10px;
-            font-size: 1.1em;
-            font-weight: 600;
-        }
-        
-        .benchmarks-grid { 
-            display: grid; 
-            grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); 
-            gap: 10px; 
-            margin-top: 10px; 
-        }
-        
-        .benchmark-card { 
-            background: #f8f9fa; 
-            border-radius: 12px; 
-            padding: 12px; 
-            border: 1px solid #edf2f7; 
-            text-align: center;
-            font-size: 0.9em;
-        }
-        
-        .refresh-btn { 
-            background: var(--primary); 
-            color: white; 
-            border: none; 
-            padding: 12px 18px; 
-            border-radius: 8px; 
-            cursor: pointer; 
-            font-weight: 600;
-            font-size: 0.9em;
-            min-height: 44px;
-            white-space: nowrap;
-        }
-        
-        .refresh-btn:active {
-            transform: scale(0.98);
-            opacity: 0.9;
-        }
-
-        .error-msg {
-            background: #fee;
-            border: 1px solid #fcc;
-            padding: 15px;
-            border-radius: 8px;
-            color: #c33;
-            margin: 10px 0;
-        }
-        
-        /* Mobile-specific styles */
-        @media (max-width: 768px) {
-            body {
-                padding: 5px;
-            }
-            
-            .dashboard {
-                padding: 15px;
-                border-radius: 10px;
-            }
-            
-            h1 {
-                font-size: 1.3em;
-            }
-            
-            h2 {
-                font-size: 1.1em;
-            }
-            
-            .winner-name {
-                font-size: 1.5em;
-            }
-            
-            .stat-card {
-                padding: 15px;
-            }
-            
-            .chart-container {
-                height: 250px;
-                padding: 5px;
-            }
-            
-            td {
-                font-size: 0.85em;
-                padding: 10px 6px;
-                height: 45px;
-            }
-            
-            th {
-                font-size: 0.7em;
-                padding: 8px 6px;
-            }
-            
-            .benchmarks-grid {
-                grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
-                gap: 8px;
-            }
-            
-            .benchmark-card {
-                padding: 10px;
-                font-size: 0.85em;
-            }
-            
-            .section-divider h2 {
-                font-size: 1.4em;
-            }
-            
-            .year-badge {
-                font-size: 0.95em;
-                padding: 6px 15px;
-            }
-        }
-        
-        @media (max-width: 480px) {
-            h1 {
-                font-size: 1.1em;
-                min-width: 150px;
-            }
-            
-            .winner-name {
-                font-size: 1.3em;
-            }
-            
-            .refresh-btn {
-                padding: 10px 15px;
-                font-size: 0.85em;
-            }
-            
-            .chart-container {
-                height: 220px;
-            }
-            
-            .benchmarks-grid {
-                grid-template-columns: repeat(2, 1fr);
-            }
-            
-            .section-divider h2 {
-                font-size: 1.2em;
-                letter-spacing: 1px;
-            }
-            
-            .year-badge {
-                font-size: 0.9em;
-                padding: 5px 12px;
-            }
-        }
+        .stat-card.gold { background: linear-gradient(135deg, #bf953f, #fcf6ba, #b38728, #fbf5b7, #aa771c); color: #1a2a6c; border: 1px solid #d4af37; }
+        .winner-name { font-size: 2.5em; font-weight: 800; margin: 5px 0; }
+        .chart-container { height: 400px; margin-bottom: 30px; background: #fff; padding: 15px; border-radius: 12px; border: 1px solid #eee; }
+        table { width: 100%; border-collapse: collapse; margin-bottom: 30px; }
+        th { text-align: left; padding: 12px; font-size: 0.8em; color: #888; text-transform: uppercase; border-bottom: 2px solid #eee; }
+        td { padding: 15px 12px; border-bottom: 1px solid #f8f8f8; font-size: 1.1em; }
+        .ticker { font-family: monospace; background: #f0f7ff; color: #007bff; padding: 4px 8px; border-radius: 5px; font-weight: bold; }
+        .pos { color: var(--win); font-weight: bold; }
+        .neg { color: var(--loss); font-weight: bold; }
+        .rocket { margin-left: 8px; font-size: 1.2em; filter: drop-shadow(0 0 3px gold); }
+        .benchmarks-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 15px; margin-top: 10px; }
+        .benchmark-card { background: #f8f9fa; border-radius: 12px; padding: 15px; border: 1px solid #edf2f7; text-align: center; }
+        .avg-card { background: var(--primary); color: white; border: 1px solid var(--primary); }
+        .avg-card .ticker { background: rgba(255,255,255,0.1); color: white; }
+        .refresh-btn { background: var(--primary); color: white; border: none; padding: 10px 15px; border-radius: 8px; cursor: pointer; font-weight: 600; }
+        .section-2025 { margin-top: 60px; padding-top: 40px; border-top: 3px double #eee; }
     </style>
 </head>
 <body>
 <div class="dashboard">
     <header>
-        <h1>🏆 The $ Game: 2026</h1>
-        <button class="refresh-btn" onclick="update()">🔄 Update Live</button>
+        <h1>🧪 OUCT Covalent Partners</h1>
+        <button class="refresh-btn" onclick="update()">🚀 Update Live</button>
     </header>
 
-    <div id="leader-card"></div>
+    <div id="leader-card-2026"></div>
 
-    <h2>Leaderboard</h2>
-    <div class="table-wrapper">
-        <div id="participant-area">Connecting to your spreadsheet...</div>
-    </div>
-
-    <h2>Market Benchmarks</h2>
-    <div id="market-area" class="benchmarks-grid">Loading...</div>
-
-    <h2>Performance Since Jan 1, 2026 (Weekly)</h2>
+    <h2>Performance Since Jan 1, 2026</h2>
     <div class="chart-container">
         <canvas id="multiChart"></canvas>
     </div>
 
-    <div class="section-divider">
-        <h2>📅 2025 Performance</h2>
-        <div class="year-badge">Historical Results</div>
+    <h2>2026 Leaderboard</h2>
+    <div id="participant-area-2026">Connecting to your spreadsheet...</div>
+
+    <h2>Market & Fund Benchmarks (2026)</h2>
+    <div id="market-area" class="benchmarks-grid"></div>
+
+    <div class="section-2025">
+        <h1 style="text-align: center; color: #7f8c8d; margin-bottom: 30px;">🗓️ 2025 Performance</h1>
+        <div id="champion-card-2025"></div>
+        <h2>2025 Final Leaderboard</h2>
+        <div id="participant-area-2025">Loading historical data...</div>
     </div>
 
-    <h2>2025 Final Leaderboard</h2>
-    <div class="table-wrapper">
-        <div id="participant-2025-area">Loading 2025 data...</div>
-    </div>
-
-    <h2>2025 Market Benchmarks</h2>
-    <div id="market-2025-area" class="benchmarks-grid">Loading...</div>
+    <div id="last-updated" style="text-align: center; margin-top: 40px; color: #bdc3c7; font-size: 0.8em;"></div>
 </div>
 
 <script>
     const SHEET_ID = '1sEP1zRqhjJqp_cuLvggNBjiPdjbrCpMr5DW-7rIBF_s';
-    const GID_MAIN = '1028487677';
+    const GID_2026 = '1028487677';
     const GID_2025 = '869680458';
-
+    const TAB_HISTORY = 'History';
     let chartObj = null;
-    let cachedChartData = null; // Cache for chart data
-    let lastFetchTime = null;
-    const CACHE_DURATION = 5 * 60 * 1000; // 5 minutes in milliseconds
 
-    const market2025 = {
-        'S&P 500 (.INX)': 0.1639,
-        'Nasdaq Composite (.IXIC)': 0.2034,
-        'Dow Jones Industrial (.DJI)': 0.1297
-    };
-
-    async function fetchYahooData(ticker) {
-        try {
-            // Fetch weekly data from Jan 1, 2026 to today
-            const startDate = new Date('2026-01-01');
-            const endDate = new Date();
-            
-            const period1 = Math.floor(startDate.getTime() / 1000);
-            const period2 = Math.floor(endDate.getTime() / 1000);
-            
-            // Use 1wk interval for weekly Friday closes
-            const url = `https://query1.finance.yahoo.com/v8/finance/chart/${ticker}?period1=${period1}&period2=${period2}&interval=1wk`;
-            
-            console.log(`Fetching weekly data for ${ticker}...`);
-            const response = await fetch(url);
-            const data = await response.json();
-            
-            if (data.chart.error || !data.chart.result) {
-                console.error(`Error for ${ticker}:`, data.chart.error);
-                return null;
-            }
-            
-            const result = data.chart.result[0];
-            const timestamps = result.timestamp;
-            const closes = result.indicators.quote[0].close;
-            
-            if (!timestamps || !closes || closes.length === 0) {
-                console.error(`No data for ${ticker}`);
-                return null;
-            }
-            
-            // Get first valid closing price (baseline)
-            const firstClose = closes.find(c => c !== null);
-            if (!firstClose) return null;
-            
-            // Calculate percentage change from first week for each week
-            const history = timestamps.map((ts, i) => {
-                if (closes[i] === null) return null;
-                return {
-                    date: new Date(ts * 1000),
-                    percentChange: ((closes[i] - firstClose) / firstClose) * 100
-                };
-            }).filter(item => item !== null);
-            
-            console.log(`✓ Got ${history.length} weekly data points for ${ticker}`);
-            return history;
-            
-        } catch (error) {
-            console.error(`Failed to fetch ${ticker}:`, error);
-            return null;
-        }
+    function getDynamicStyle(perf) {
+        const intensity = Math.min(Math.abs(perf) / 0.15, 1);
+        return perf >= 0 ? `linear-gradient(135deg, #1a2a6c, rgba(39, 174, 96, ${intensity}))` : `linear-gradient(135deg, #1a2a6c, rgba(231, 76, 60, ${intensity}))`;
     }
 
     async function update() {
-        console.log('Starting update...');
-        
-        // Clear cache when user clicks Update button to force fresh data
-        cachedChartData = null;
-        lastFetchTime = null;
-        
+        fetchYearData(GID_2026, '2026');
+        fetchYearData(GID_2025, '2025');
+        fetchHistory();
+        document.getElementById('last-updated').innerText = "Last Updated: " + new Date().toLocaleTimeString();
+    }
+
+    async function fetchYearData(gid, year) {
         try {
-            const res = await fetch(`https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:json&gid=${GID_MAIN}`);
+            const res = await fetch(`https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:json&gid=${gid}`);
             const text = await res.text();
             const json = JSON.parse(text.substring(text.indexOf('{'), text.lastIndexOf('}') + 1));
             const rows = json.table.rows;
-            
             let participants = [];
             let benchmarks = [];
             let sp500Perf = -999;
@@ -437,402 +98,80 @@
                     const ticker = r.c[1].v || "";
                     if(ticker === 'Ticker' || name === 'Participant') return;
 
-                    const price = r.c[3] ? (r.c[3].f || r.c[3].v) : '0';
-                    const perfRaw = r.c[4] ? r.c[4].v : 0;
-                    const perfDisp = (perfRaw * 100).toFixed(2) + '%';
-
-                    const item = { name, ticker, price, perfRaw, perfDisp };
-                    
-                    if (participants.length < 10) {
-                        participants.push(item);
-                    } else {
-                        benchmarks.push(item);
-                        if (name.toUpperCase().includes("S&P") || ticker.includes("INX")) {
-                            sp500Perf = perfRaw;
+                    if (year === '2026') {
+                        const price = r.c[3] ? (r.c[3].f || r.c[3].v) : '0';
+                        const perfRaw = r.c[4] ? r.c[4].v : 0;
+                        const item = { name, ticker, price, perfRaw, perfDisp: (perfRaw * 100).toFixed(2) + '%' };
+                        if (participants.length < 10) participants.push(item);
+                        else {
+                            benchmarks.push(item);
+                            if (name.toUpperCase().includes("S&P") || ticker.includes("INX")) sp500Perf = perfRaw;
                         }
-                    }
-                }
-            });
-
-            participants.sort((a, b) => b.perfRaw - a.perfRaw);
-            
-            const avgPerf = participants.reduce((sum, p) => sum + p.perfRaw, 0) / participants.length;
-            const avgPerfDisp = (avgPerf * 100).toFixed(2) + '%';
-            
-            let pTable = `<table><tr><th>#</th><th>Name</th><th>Ticker</th><th style="text-align:right">Price</th><th style="text-align:right">Gain</th></tr>`;
-            participants.forEach((p, i) => {
-                const isBeatingMarket = p.perfRaw > sp500Perf && sp500Perf !== -999;
-                const color = p.perfRaw >= 0 ? 'pos' : 'neg';
-                
-                let rocketSize = '1em';
-                if (isBeatingMarket) {
-                    const perfPercent = p.perfRaw * 100;
-                    const sp500Percent = sp500Perf * 100;
-                    const outperformance = perfPercent - sp500Percent;
-                    
-                    const logValue = Math.log10(Math.max(outperformance, 0.1) + 1);
-                    const maxLog = Math.log10(11);
-                    const scaleFactor = Math.min(logValue / maxLog, 1);
-                    const size = 0.8 + (scaleFactor * 1.4);
-                    rocketSize = size.toFixed(2) + 'em';
-                }
-                
-                pTable += `<tr>
-                    <td>#${i+1}</td>
-                    <td><strong>${p.name}</strong>${isBeatingMarket ? `<span class="rocket" style="font-size: ${rocketSize};">🚀</span>` : ''}</td>
-                    <td><span class="ticker">${p.ticker}</span></td>
-                    <td style="text-align:right">$${p.price}</td>
-                    <td style="text-align:right" class="${color}">${(p.perfRaw > 0 ? '+' : '') + p.perfDisp}</td>
-                </tr>`;
-            });
-            document.getElementById('participant-area').innerHTML = pTable + '</table>';
-
-            benchmarks.push({
-                name: 'OUCT Covalent Partners',
-                perfRaw: avgPerf,
-                perfDisp: avgPerfDisp
-            });
-
-            document.getElementById('market-area').innerHTML = benchmarks.map(b => {
-                const isOUCT = b.name === 'OUCT Covalent Partners';
-                
-                let bgColor = '';
-                let borderColor = '';
-                if (isOUCT) {
-                    const perf = b.perfRaw * 100;
-                    if (perf >= 0) {
-                        const intensity = Math.min(perf / 20, 1);
-                        const lightness = 95 - (intensity * 45);
-                        const saturation = 40 + (intensity * 50);
-                        bgColor = `hsl(140, ${saturation}%, ${lightness}%)`;
-                        borderColor = `hsl(140, ${saturation + 10}%, ${lightness - 10}%)`;
                     } else {
-                        const intensity = Math.min(Math.abs(perf) / 20, 1);
-                        const lightness = 95 - (intensity * 45);
-                        const saturation = 40 + (intensity * 50);
-                        bgColor = `hsl(0, ${saturation}%, ${lightness}%)`;
-                        borderColor = `hsl(0, ${saturation + 10}%, ${lightness - 10}%)`;
+                        const ongoingRaw = r.c[4] ? r.c[4].v : 0;
+                        const finalRaw = r.c[5] ? r.c[5].v : 0;
+                        participants.push({ name, ticker, ongoing: (ongoingRaw * 100).toFixed(2) + '%', final: (finalRaw * 100).toFixed(2) + '%', finalValue: finalRaw });
                     }
                 }
-                
-                return `
-                <div class="benchmark-card" ${isOUCT ? `style="background: ${bgColor}; color: #333; border: 2px solid ${borderColor};"` : ''}>
-                    <div style="font-weight:700; ${isOUCT ? 'color: #333;' : ''}">${b.name}</div>
-                    <div class="${isOUCT ? '' : (b.perfRaw >= 0 ? 'pos' : 'neg')}" ${isOUCT ? 'style="color: #333; font-weight: bold; font-size: 1.1em;"' : ''}>${(b.perfRaw > 0 ? '+' : '') + b.perfDisp}</div>
-                </div>`;
-            }).join('');
+            });
 
-            const leader = participants[0];
-            document.getElementById('leader-card').innerHTML = `
-                <div class="stat-card">
-                    <div>CURRENT CHAMPION</div>
-                    <div class="winner-name">👑 ${leader.name}</div>
-                    <div style="font-size:1.2em; color:var(--accent)">${leader.ticker} • ${leader.perfDisp}</div>
-                </div>`;
-
-            fetchHistory(participants);
-            fetch2025Data();
-        } catch (e) { 
-            console.error('Error:', e);
-            document.getElementById('participant-area').innerHTML = `<div class="error-msg">❌ Error: ${e.message}</div>`;
-        }
+            if (year === '2026') {
+                participants.sort((a, b) => b.perfRaw - a.perfRaw);
+                render2026(participants, benchmarks, sp500Perf);
+            } else {
+                participants.sort((a, b) => b.finalValue - a.finalValue);
+                render2025(participants);
+            }
+        } catch (e) { console.error(e); }
     }
 
-    async function fetchHistory(participants) {
-        // Check if we have cached data that's still fresh
-        const now = Date.now();
-        if (cachedChartData && lastFetchTime && (now - lastFetchTime < CACHE_DURATION)) {
-            console.log('Using cached chart data');
-            renderChart(cachedChartData);
-            return;
-        }
-        
-        console.log('Fetching WEEKLY historical data from Yahoo Finance...');
-        console.log('This should take 3-5 seconds...');
-        
+    function render2026(participants, benchmarks, sp500Perf) {
+        const totalPerf = participants.reduce((sum, p) => sum + p.perfRaw, 0);
+        const avgPerf = totalPerf / participants.length;
+        const leader = participants[0];
+        document.getElementById('leader-card-2026').innerHTML = `<div class="stat-card" style="background: ${getDynamicStyle(leader.perfRaw)}"><div style="text-transform: uppercase; font-size: 0.8em; letter-spacing: 2px;">2026 Leader</div><div class="winner-name">👑 ${leader.name}</div><div style="font-size:1.2em; color:var(--accent); font-weight: bold;">${leader.ticker} • ${leader.perfDisp}</div></div>`;
+        let pTable = `<table><tr><th>#</th><th>Name</th><th>Ticker</th><th style="text-align:right">Price</th><th style="text-align:right">Gain</th></tr>`;
+        participants.forEach((p, i) => { pTable += `<tr><td>#${i+1}</td><td><strong>${p.name}</strong>${p.perfRaw > sp500Perf ? '<span class="rocket">🚀</span>' : ''}</td><td><span class="ticker">${p.ticker}</span></td><td style="text-align:right">$${p.price}</td><td style="text-align:right" class="${p.perfRaw >= 0 ? 'pos' : 'neg'}">${(p.perfRaw > 0 ? '+' : '') + p.perfDisp}</td></tr>`; });
+        document.getElementById('participant-area-2026').innerHTML = pTable + `</table>`;
+        let mHtml = benchmarks.map(b => `<div class="benchmark-card"><div style="font-weight:700;">${b.name}</div><div class="${b.perfRaw >= 0 ? 'pos' : 'neg'}">${(b.perfRaw > 0 ? '+' : '') + b.perfDisp}</div></div>`).join('');
+        mHtml += `<div class="benchmark-card avg-card"><div style="font-weight:700;">Group Average</div><div class="ticker" style="font-size:0.75em; margin: 4px 0;">Fund Mean</div><div style="font-size:1.2em; font-weight:bold;">${(avgPerf > 0 ? '+' : '') + (avgPerf * 100).toFixed(2)}%</div></div>`;
+        document.getElementById('market-area').innerHTML = mHtml;
+    }
+
+    function render2025(participants) {
+        const champion = participants[0];
+        document.getElementById('champion-card-2025').innerHTML = `<div class="stat-card gold"><div style="text-transform: uppercase; font-size: 0.8em; letter-spacing: 2px; font-weight: bold;">🏆 2025 Champion</div><div class="winner-name">${champion.name}</div><div style="font-size:1.2em; font-weight: bold;">Final Performance: ${champion.final}</div></div>`;
+        let html = `<table><tr><th>Rank</th><th>Participant</th><th>Ticker</th><th style="text-align:right">Ongoing Performance</th><th style="text-align:right">Final Performance</th></tr>`;
+        participants.forEach((p, i) => { html += `<tr><td style="font-weight: bold; color: #7f8c8d;">#${i+1}</td><td><strong>${p.name}</strong></td><td><span class="ticker">${p.ticker}</span></td><td style="text-align:right">${p.ongoing}</td><td style="text-align:right; font-weight: bold;" class="${p.finalValue >= 0 ? 'pos' : 'neg'}">${p.final}</td></tr>`; });
+        document.getElementById('participant-area-2025').innerHTML = html + `</table>`;
+    }
+
+    async function fetchHistory() {
         try {
-            // Get all tickers from participants
-            const participantTickers = participants.map(p => p.ticker);
-            
-            // Market benchmark tickers
-            const marketTickers = ['^GSPC', '^IXIC', '^DJI'];
-            
-            const allTickers = [...participantTickers, ...marketTickers];
-            
-            console.log('Fetching weekly data for:', allTickers);
-            
-            // Fetch all tickers with shorter delay (weekly data is much lighter)
-            const results = [];
-            for (let i = 0; i < allTickers.length; i++) {
-                const ticker = allTickers[i];
-                const data = await fetchYahooData(ticker);
-                results.push(data);
-                
-                // Shorter delay for weekly data
-                if (i < allTickers.length - 1) {
-                    await new Promise(resolve => setTimeout(resolve, 150));
-                }
-            }
-            
-            // Filter out failed fetches
-            const validIndices = results.map((r, i) => r !== null ? i : -1).filter(i => i >= 0);
-            
-            if (validIndices.length === 0) {
-                console.error('No data could be fetched');
-                document.getElementById('multiChart').parentElement.innerHTML = 
-                    '<div style="padding: 20px; text-align: center; color: #999;">Unable to load chart. Please refresh.</div>';
-                return;
-            }
-            
-            // Find common dates
-            const allDatesSet = new Set();
-            validIndices.forEach(idx => {
-                if (results[idx]) {
-                    results[idx].forEach(item => {
-                        allDatesSet.add(item.date.toDateString());
-                    });
-                }
-            });
-            
-            const commonDates = Array.from(allDatesSet).sort((a, b) => new Date(a) - new Date(b));
-            
-            // Create datasets
-            const colors = ['#1a2a6c', '#b21f1f', '#fdbb2d', '#27ae60', '#3498db', '#9b59b6', '#e67e22', '#1abc9c', '#2c3e50', '#7f8c8d'];
-            const datasets = [];
-            const participantDatasets = [];
-            
-            allTickers.forEach((ticker, idx) => {
-                const history = results[idx];
-                if (!history) return;
-                
-                const dataMap = new Map();
-                history.forEach(item => {
-                    dataMap.set(item.date.toDateString(), item.percentChange);
-                });
-                
-                const chartData = commonDates.map(dateStr => dataMap.get(dateStr) || null);
-                
-                const isMarket = marketTickers.includes(ticker);
-                
-                let label = ticker;
-                if (ticker === '^GSPC') label = 'S&P 500';
-                else if (ticker === '^IXIC') label = 'NASDAQ';
-                else if (ticker === '^DJI') label = 'DOW';
-                
-                const dataset = {
-                    label,
-                    data: chartData,
-                    borderColor: colors[idx % colors.length],
-                    borderWidth: isMarket ? 4 : 2,
-                    fill: false,
-                    tension: 0.1,
-                    pointRadius: 0,
-                    spanGaps: true
-                };
-                
-                datasets.push(dataset);
-                
-                if (!isMarket) {
-                    participantDatasets.push(chartData);
-                }
-            });
-            
-            // Calculate OUCT average
-            if (participantDatasets.length > 0) {
-                const avgData = commonDates.map((_, dateIdx) => {
-                    const values = participantDatasets
-                        .map(dataset => dataset[dateIdx])
-                        .filter(v => v !== null);
-                    
-                    if (values.length === 0) return null;
-                    return values.reduce((sum, v) => sum + v, 0) / values.length;
-                });
-                
-                datasets.push({
-                    label: "OUCT Covalent Partners",
-                    data: avgData,
-                    borderColor: "#667eea",
-                    borderWidth: 3,
-                    borderDash: [5, 5],
-                    fill: false,
-                    tension: 0.1,
-                    pointRadius: 0,
-                    spanGaps: true
-                });
-            }
-            
-            // Format labels - show week ending date
-            const labels = commonDates.map(dateStr => {
-                const d = new Date(dateStr);
-                return `${d.getMonth() + 1}/${d.getDate()}`;
-            });
-            
-            // Cache the chart data
-            cachedChartData = { labels, datasets };
-            lastFetchTime = Date.now();
-            
-            // Render the chart
-            renderChart(cachedChartData);
-            
-            console.log('✓ Chart created with weekly data');
-            console.log('Data cached for 5 minutes');
-            
-        } catch (error) {
-            console.error('Chart error:', error);
-            document.getElementById('multiChart').parentElement.innerHTML = 
-                '<div style="padding: 20px; text-align: center; color: #999;">Chart temporarily unavailable</div>';
-        }
-    }
-    
-    function renderChart(chartData) {
-        const ctx = document.getElementById('multiChart').getContext('2d');
-        if (chartObj) chartObj.destroy();
-        
-        chartObj = new Chart(ctx, {
-            type: 'line',
-            data: chartData,
-            options: { 
-                responsive: true, 
-                maintainAspectRatio: false,
-                plugins: { 
-                    legend: { 
-                        position: 'bottom', 
-                        labels: { 
-                            boxWidth: 12, 
-                            font: { size: window.innerWidth < 480 ? 8 : 10 }
-                        } 
-                    },
-                    tooltip: {
-                        mode: 'index',
-                        intersect: false,
-                        callbacks: {
-                            label: (ctx) => {
-                                const value = ctx.parsed.y;
-                                return value !== null ? `${ctx.dataset.label}: ${value.toFixed(2)}%` : null;
-                            }
-                        }
-                    }
-                },
-                scales: { 
-                    y: { 
-                        ticks: { 
-                            callback: v => v.toFixed(1) + '%',
-                            font: { size: window.innerWidth < 480 ? 9 : 11 }
-                        }, 
-                        title: { display: true, text: 'Return Since Jan 1 (%)' } 
-                    },
-                    x: { 
-                        ticks: { 
-                            maxTicksLimit: window.innerWidth < 480 ? 5 : 10,
-                            font: { size: window.innerWidth < 480 ? 9 : 11 }
-                        } 
-                    }
-                }
-            }
-        });
-    }
-
-    async function fetch2025Data() {
-        try {
-            const res = await fetch(`https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:json&gid=${GID_2025}`);
+            const res = await fetch(`https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:json&sheet=${TAB_HISTORY}`);
             const text = await res.text();
             const json = JSON.parse(text.substring(text.indexOf('{'), text.lastIndexOf('}') + 1));
             const rows = json.table.rows;
-            
-            let participants2025 = [];
-
-            rows.forEach((r) => {
-                if(r.c && r.c[0] && r.c[1]) {
-                    const name = r.c[0].v || "";
-                    const ticker = r.c[1].v || "";
-                    if(ticker === 'Ticker' || name === 'Participant' || ticker === '' || name === '') return;
-
-                    const ongoingRaw = r.c[4] ? r.c[4].v : 0;
-                    const ongoingDisp = (ongoingRaw * 100).toFixed(2) + '%';
-                    
-                    const finalRaw = r.c[5] ? r.c[5].v : 0;
-                    const finalDisp = (finalRaw * 100).toFixed(2) + '%';
-
-                    participants2025.push({ 
-                        name, 
-                        ticker, 
-                        ongoingRaw, 
-                        ongoingDisp,
-                        finalRaw,
-                        finalDisp
-                    });
-                }
-            });
-
-            participants2025.sort((a, b) => b.finalRaw - a.finalRaw);
-            
-            const avgFinal = participants2025.reduce((sum, p) => sum + p.finalRaw, 0) / participants2025.length;
-            const avgFinalDisp = (avgFinal * 100).toFixed(2) + '%';
-            
-            let pTable2025 = `<table><tr><th>#</th><th>Name</th><th>Ticker</th><th style="text-align:right">Ongoing</th><th style="text-align:right">Final</th></tr>`;
-            participants2025.forEach((p, i) => {
-                const ongoingColor = p.ongoingRaw >= 0 ? 'pos' : 'neg';
-                const finalColor = p.finalRaw >= 0 ? 'pos' : 'neg';
-                const rankLabel = i === 0 ? '🏆' : `#${i+1}`;
-                pTable2025 += `<tr>
-                    <td>${rankLabel}</td>
-                    <td><strong>${p.name}</strong></td>
-                    <td><span class="ticker">${p.ticker}</span></td>
-                    <td style="text-align:right" class="${ongoingColor}">${(p.ongoingRaw > 0 ? '+' : '') + p.ongoingDisp}</td>
-                    <td style="text-align:right" class="${finalColor}">${(p.finalRaw > 0 ? '+' : '') + p.finalDisp}</td>
-                </tr>`;
-            });
-            document.getElementById('participant-2025-area').innerHTML = pTable2025 + '</table>';
-
-            const benchmarks2025 = [];
-            for (const [name, perfRaw] of Object.entries(market2025)) {
-                benchmarks2025.push({
-                    name,
-                    perfRaw,
-                    perfDisp: (perfRaw * 100).toFixed(2) + '%'
+            const cols = json.table.cols;
+            if (!rows || rows.length === 0) return;
+            const labels = rows.map(r => r.c[0]?.f || '');
+            const colors = ['#1a2a6c', '#b21f1f', '#fdbb2d', '#27ae60', '#3498db', '#9b59b6', '#e67e22', '#1abc9c', '#2c3e50', '#7f8c8d'];
+            const datasets = [];
+            for (let i = 1; i < cols.length; i++) {
+                if (!cols[i] || !cols[i].label) continue;
+                const cleanLabel = cols[i].label.toString().replace(/Close/gi, "").trim();
+                const tickerData = rows.map(r => {
+                    const val = r.c[i]?.v;
+                    const firstVal = rows[0].c[i]?.v;
+                    return (firstVal && val) ? ((val - firstVal) / firstVal) * 100 : 0;
                 });
+                datasets.push({ label: cleanLabel, data: tickerData, borderColor: colors[i-1] || '#ccc', borderWidth: cleanLabel.toUpperCase().includes("S&P") ? 4 : 2, fill: false, tension: 0.1, pointRadius: 0 });
             }
-            
-            benchmarks2025.push({
-                name: 'OUCT Covalent Partners',
-                perfRaw: avgFinal,
-                perfDisp: avgFinalDisp
-            });
-
-            document.getElementById('market-2025-area').innerHTML = benchmarks2025.map(b => {
-                const isOUCT = b.name === 'OUCT Covalent Partners';
-                
-                let bgColor = '';
-                let borderColor = '';
-                if (isOUCT) {
-                    const perf = b.perfRaw * 100;
-                    if (perf >= 0) {
-                        const intensity = Math.min(perf / 20, 1);
-                        const lightness = 95 - (intensity * 45);
-                        const saturation = 40 + (intensity * 50);
-                        bgColor = `hsl(140, ${saturation}%, ${lightness}%)`;
-                        borderColor = `hsl(140, ${saturation + 10}%, ${lightness - 10}%)`;
-                    } else {
-                        const intensity = Math.min(Math.abs(perf) / 20, 1);
-                        const lightness = 95 - (intensity * 45);
-                        const saturation = 40 + (intensity * 50);
-                        bgColor = `hsl(0, ${saturation}%, ${lightness}%)`;
-                        borderColor = `hsl(0, ${saturation + 10}%, ${lightness - 10}%)`;
-                    }
-                }
-                
-                return `
-                <div class="benchmark-card" ${isOUCT ? `style="background: ${bgColor}; color: #333; border: 2px solid ${borderColor};"` : ''}>
-                    <div style="font-weight:700; ${isOUCT ? 'color: #333;' : ''}">${b.name}</div>
-                    <div class="${isOUCT ? '' : (b.perfRaw >= 0 ? 'pos' : 'neg')}" ${isOUCT ? 'style="color: #333; font-weight: bold; font-size: 1.1em;"' : ''}>${(b.perfRaw > 0 ? '+' : '') + b.perfDisp}</div>
-                </div>`;
-            }).join('');
-
-        } catch (e) { 
-            console.error('Error fetching 2025 data:', e);
-        }
+            const ctx = document.getElementById('multiChart').getContext('2d');
+            if (chartObj) chartObj.destroy();
+            chartObj = new Chart(ctx, { type: 'line', data: { labels, datasets }, options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'bottom', labels: { boxWidth: 12, font: { size: 10 } } } }, scales: { y: { ticks: { callback: v => v.toFixed(1) + '%' } } } } });
+        } catch (e) { console.error(e); }
     }
-
     update();
 </script>
 </body>
