@@ -64,14 +64,47 @@
             padding: 20px; 
             border-radius: 15px; 
             text-align: center; 
-            margin-bottom: 20px; 
+            margin-bottom: 20px;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            text-align: left;
+        }
+        
+        .stat-section {
+            padding: 10px;
+        }
+        
+        .stat-section:first-child {
+            border-right: 2px solid rgba(255,255,255,0.3);
+        }
+        
+        .stat-label {
+            font-size: 0.75em;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            opacity: 0.9;
+            margin-bottom: 8px;
         }
         
         .winner-name { 
-            font-size: 1.8em; 
+            font-size: 1.6em; 
             font-weight: 800; 
             margin: 5px 0;
             word-wrap: break-word;
+        }
+        
+        .winner-ticker {
+            font-size: 1em;
+            color: var(--accent);
+            font-weight: 600;
+        }
+        
+        .ouct-return {
+            font-size: 2em;
+            font-weight: 800;
+            color: var(--accent);
+            margin: 5px 0;
         }
         
         .chart-container { 
@@ -118,20 +151,20 @@
             font-family: monospace; 
             background: #f0f7ff; 
             color: #007bff; 
-            padding: 4px 10px; 
+            padding: 5px 12px; 
             border-radius: 6px; 
             font-weight: bold;
-            font-size: 1.05em;
+            font-size: 1.15em;
             white-space: nowrap;
         }
         
         .pos { 
-            color: var(--win); 
+            color: #27ae60;
             font-weight: bold; 
         }
         
         .neg { 
-            color: var(--loss); 
+            color: #e74c3c;
             font-weight: bold; 
         }
         
@@ -167,6 +200,17 @@
             margin-top: 10px;
             font-size: 1.1em;
             font-weight: 600;
+            margin-right: 15px;
+        }
+        
+        .ouct-badge {
+            display: inline-block;
+            background: rgba(255,255,255,0.3);
+            padding: 8px 20px;
+            border-radius: 25px;
+            margin-top: 10px;
+            font-size: 1.1em;
+            font-weight: 700;
         }
         
         .benchmarks-grid { 
@@ -334,7 +378,10 @@
 
     <div class="section-divider">
         <h2>📅 2025 Performance</h2>
-        <div class="year-badge">Historical Results</div>
+        <div>
+            <span class="year-badge">Historical Results</span>
+            <span class="ouct-badge" id="ouct-2025-badge">Loading...</span>
+        </div>
     </div>
 
     <h2>2025 Final Leaderboard</h2>
@@ -415,7 +462,7 @@
                     const logValue = Math.log10(Math.max(outperformance, 0.1) + 1);
                     const maxLog = Math.log10(11);
                     const scaleFactor = Math.min(logValue / maxLog, 1);
-                    const size = 0.8 + (scaleFactor * 1.4);
+                    const size = 0.7 + (scaleFactor * 0.8); // Thinner: 0.7 to 1.5em
                     rocketSize = size.toFixed(2) + 'em';
                 }
                 
@@ -472,7 +519,16 @@
                     <div style="font-size:1.2em; color:var(--accent)">${leader.ticker} • ${leader.perfDisp}</div>
                 </div>`;
 
-            fetchHistory();
+            // Don't add OUCT to market benchmarks anymore
+            document.getElementById('market-area').innerHTML = benchmarks.map(b => {
+                return `
+                <div class="benchmark-card">
+                    <div style="font-weight:700;">${b.name}</div>
+                    <div class="${b.perfRaw >= 0 ? 'pos' : 'neg'}">${(b.perfRaw > 0 ? '+' : '') + b.perfDisp}</div>
+                </div>`;
+            }).join('');
+
+            fetchHistory(participants);
             fetch2025Data();
         } catch (e) { 
             console.error('Error:', e);
@@ -480,7 +536,7 @@
         }
     }
 
-    async function fetchHistory() {
+    async function fetchHistory(participants) {
         console.log('Fetching history from Google Sheets...');
         
         try {
@@ -500,7 +556,13 @@
             const labels = rows.map(r => r.c[0]?.f || '');
             const colors = ['#1a2a6c', '#b21f1f', '#fdbb2d', '#27ae60', '#3498db', '#9b59b6', '#e67e22', '#1abc9c', '#2c3e50', '#7f8c8d'];
 
-            const datasets = [];
+            // Create participant ticker map for ordering
+            const participantMap = {};
+            participants.forEach((p, idx) => {
+                participantMap[p.ticker.toUpperCase()] = idx;
+            });
+
+            const allDatasets = [];
             const participantDatasets = [];
             
             for (let i = 1; i < cols.length; i++) {
@@ -518,14 +580,18 @@
                                          cleanLabel.toUpperCase().includes("DOW") || 
                                          cleanLabel.toUpperCase().includes("NASDAQ");
 
-                datasets.push({
+                const order = participantMap[cleanLabel.toUpperCase()];
+                
+                allDatasets.push({
                     label: cleanLabel,
                     data: tickerData,
                     borderColor: colors[i-1] || '#ccc',
                     borderWidth: isMarketBenchmark ? 4 : 2, 
                     fill: false,
                     tension: 0.1,
-                    pointRadius: 0
+                    pointRadius: 0,
+                    isMarket: isMarketBenchmark,
+                    order: order !== undefined ? order : 999
                 });
                 
                 if (!isMarketBenchmark) {
@@ -533,13 +599,20 @@
                 }
             }
 
+            // Sort: participants by leaderboard order, then markets, then OUCT
+            allDatasets.sort((a, b) => {
+                if (a.isMarket && !b.isMarket) return 1;
+                if (!a.isMarket && b.isMarket) return -1;
+                return a.order - b.order;
+            });
+
             if (participantDatasets.length > 0) {
                 const avgData = rows.map((r, idx) => {
                     const sum = participantDatasets.reduce((total, dataset) => total + (dataset[idx] || 0), 0);
                     return sum / participantDatasets.length;
                 });
 
-                datasets.push({
+                allDatasets.push({
                     label: "OUCT Covalent Partners",
                     data: avgData,
                     borderColor: "#667eea",
@@ -555,7 +628,7 @@
             if (chartObj) chartObj.destroy();
             chartObj = new Chart(ctx, {
                 type: 'line',
-                data: { labels, datasets },
+                data: { labels, datasets: allDatasets },
                 options: { 
                     responsive: true, 
                     maintainAspectRatio: false,
@@ -633,6 +706,11 @@
             const avgFinal = participants2025.reduce((sum, p) => sum + p.finalRaw, 0) / participants2025.length;
             const avgFinalDisp = (avgFinal * 100).toFixed(2) + '%';
             
+            // Update OUCT badge in 2025 section
+            const ductColor = avgFinal >= 0 ? '#27ae60' : '#e74c3c';
+            document.getElementById('ouct-2025-badge').innerHTML = `OUCT: ${(avgFinal > 0 ? '+' : '') + avgFinalDisp}`;
+            document.getElementById('ouct-2025-badge').style.color = ductColor;
+            
             let pTable2025 = `<table><tr><th>#</th><th>Name</th><th>Ticker</th><th style="text-align:right">Ongoing</th><th style="text-align:right">Final</th></tr>`;
             participants2025.forEach((p, i) => {
                 const ongoingColor = p.ongoingRaw >= 0 ? 'pos' : 'neg';
@@ -657,38 +735,12 @@
                 });
             }
             
-            benchmarks2025.push({
-                name: 'OUCT Covalent Partners',
-                perfRaw: avgFinal,
-                perfDisp: avgFinalDisp
-            });
-
+            // Don't add OUCT to 2025 market benchmarks
             document.getElementById('market-2025-area').innerHTML = benchmarks2025.map(b => {
-                const isOUCT = b.name === 'OUCT Covalent Partners';
-                
-                let bgColor = '';
-                let borderColor = '';
-                if (isOUCT) {
-                    const perf = b.perfRaw * 100;
-                    if (perf >= 0) {
-                        const intensity = Math.min(perf / 20, 1);
-                        const lightness = 95 - (intensity * 45);
-                        const saturation = 40 + (intensity * 50);
-                        bgColor = `hsl(140, ${saturation}%, ${lightness}%)`;
-                        borderColor = `hsl(140, ${saturation + 10}%, ${lightness - 10}%)`;
-                    } else {
-                        const intensity = Math.min(Math.abs(perf) / 20, 1);
-                        const lightness = 95 - (intensity * 45);
-                        const saturation = 40 + (intensity * 50);
-                        bgColor = `hsl(0, ${saturation}%, ${lightness}%)`;
-                        borderColor = `hsl(0, ${saturation + 10}%, ${lightness - 10}%)`;
-                    }
-                }
-                
                 return `
-                <div class="benchmark-card" ${isOUCT ? `style="background: ${bgColor}; color: #333; border: 2px solid ${borderColor};"` : ''}>
-                    <div style="font-weight:700; ${isOUCT ? 'color: #333;' : ''}">${b.name}</div>
-                    <div class="${isOUCT ? '' : (b.perfRaw >= 0 ? 'pos' : 'neg')}" ${isOUCT ? 'style="color: #333; font-weight: bold; font-size: 1.1em;"' : ''}>${(b.perfRaw > 0 ? '+' : '') + b.perfDisp}</div>
+                <div class="benchmark-card">
+                    <div style="font-weight:700;">${b.name}</div>
+                    <div class="${b.perfRaw >= 0 ? 'pos' : 'neg'}">${(b.perfRaw > 0 ? '+' : '') + b.perfDisp}</div>
                 </div>`;
             }).join('');
 
