@@ -319,11 +319,6 @@
 
     <div id="leader-card"></div>
 
-    <h2>Performance Since Jan 1, 2026</h2>
-    <div class="chart-container">
-        <canvas id="multiChart"></canvas>
-    </div>
-
     <h2>Leaderboard</h2>
     <div class="table-wrapper">
         <div id="participant-area">Connecting to your spreadsheet...</div>
@@ -331,6 +326,11 @@
 
     <h2>Market Benchmarks</h2>
     <div id="market-area" class="benchmarks-grid">Loading...</div>
+
+    <h2>Performance Since Jan 1, 2026 (Weekly)</h2>
+    <div class="chart-container">
+        <canvas id="multiChart"></canvas>
+    </div>
 
     <div class="section-divider">
         <h2>📅 2025 Performance</h2>
@@ -364,15 +364,17 @@
 
     async function fetchYahooData(ticker) {
         try {
+            // Fetch weekly data from Jan 1, 2026 to today
             const startDate = new Date('2026-01-01');
-            const endDate = new Date(); // Today
+            const endDate = new Date();
             
             const period1 = Math.floor(startDate.getTime() / 1000);
             const period2 = Math.floor(endDate.getTime() / 1000);
             
-            const url = `https://query1.finance.yahoo.com/v8/finance/chart/${ticker}?period1=${period1}&period2=${period2}&interval=1d`;
+            // Use 1wk interval for weekly Friday closes
+            const url = `https://query1.finance.yahoo.com/v8/finance/chart/${ticker}?period1=${period1}&period2=${period2}&interval=1wk`;
             
-            console.log(`Fetching ${ticker}...`);
+            console.log(`Fetching weekly data for ${ticker}...`);
             const response = await fetch(url);
             const data = await response.json();
             
@@ -390,11 +392,11 @@
                 return null;
             }
             
-            // Get first valid closing price (Jan 1 baseline)
+            // Get first valid closing price (baseline)
             const firstClose = closes.find(c => c !== null);
             if (!firstClose) return null;
             
-            // Calculate percentage change from Jan 1 for each day
+            // Calculate percentage change from first week for each week
             const history = timestamps.map((ts, i) => {
                 if (closes[i] === null) return null;
                 return {
@@ -403,7 +405,7 @@
                 };
             }).filter(item => item !== null);
             
-            console.log(`✓ Got ${history.length} data points for ${ticker}`);
+            console.log(`✓ Got ${history.length} weekly data points for ${ticker}`);
             return history;
             
         } catch (error) {
@@ -540,35 +542,35 @@
         // Check if we have cached data that's still fresh
         const now = Date.now();
         if (cachedChartData && lastFetchTime && (now - lastFetchTime < CACHE_DURATION)) {
-            console.log('Using cached chart data (refresh after 5 minutes or click Update button)');
+            console.log('Using cached chart data');
             renderChart(cachedChartData);
             return;
         }
         
-        console.log('Fetching historical data from Yahoo Finance...');
-        console.log('This may take 10-15 seconds...');
+        console.log('Fetching WEEKLY historical data from Yahoo Finance...');
+        console.log('This should take 3-5 seconds...');
         
         try {
             // Get all tickers from participants
             const participantTickers = participants.map(p => p.ticker);
             
-            // Market benchmark tickers in Yahoo Finance format
-            const marketTickers = ['^GSPC', '^IXIC', '^DJI']; // S&P 500, NASDAQ, DOW
+            // Market benchmark tickers
+            const marketTickers = ['^GSPC', '^IXIC', '^DJI'];
             
             const allTickers = [...participantTickers, ...marketTickers];
             
-            console.log('Fetching data for:', allTickers);
+            console.log('Fetching weekly data for:', allTickers);
             
-            // Fetch all tickers with delay to avoid rate limiting
+            // Fetch all tickers with shorter delay (weekly data is much lighter)
             const results = [];
             for (let i = 0; i < allTickers.length; i++) {
                 const ticker = allTickers[i];
                 const data = await fetchYahooData(ticker);
                 results.push(data);
                 
-                // Small delay between requests
+                // Shorter delay for weekly data
                 if (i < allTickers.length - 1) {
-                    await new Promise(resolve => setTimeout(resolve, 300));
+                    await new Promise(resolve => setTimeout(resolve, 150));
                 }
             }
             
@@ -578,11 +580,11 @@
             if (validIndices.length === 0) {
                 console.error('No data could be fetched');
                 document.getElementById('multiChart').parentElement.innerHTML = 
-                    '<div style="padding: 20px; text-align: center; color: #999;">Unable to load chart. Please refresh in a moment.</div>';
+                    '<div style="padding: 20px; text-align: center; color: #999;">Unable to load chart. Please refresh.</div>';
                 return;
             }
             
-            // Find common dates across all successful fetches
+            // Find common dates
             const allDatesSet = new Set();
             validIndices.forEach(idx => {
                 if (results[idx]) {
@@ -603,18 +605,15 @@
                 const history = results[idx];
                 if (!history) return;
                 
-                // Create map of date -> percentChange
                 const dataMap = new Map();
                 history.forEach(item => {
                     dataMap.set(item.date.toDateString(), item.percentChange);
                 });
                 
-                // Map to common dates
                 const chartData = commonDates.map(dateStr => dataMap.get(dateStr) || null);
                 
                 const isMarket = marketTickers.includes(ticker);
                 
-                // Display names
                 let label = ticker;
                 if (ticker === '^GSPC') label = 'S&P 500';
                 else if (ticker === '^IXIC') label = 'NASDAQ';
@@ -638,7 +637,7 @@
                 }
             });
             
-            // Calculate OUCT Covalent Partners average
+            // Calculate OUCT average
             if (participantDatasets.length > 0) {
                 const avgData = commonDates.map((_, dateIdx) => {
                     const values = participantDatasets
@@ -662,7 +661,7 @@
                 });
             }
             
-            // Format labels
+            // Format labels - show week ending date
             const labels = commonDates.map(dateStr => {
                 const d = new Date(dateStr);
                 return `${d.getMonth() + 1}/${d.getDate()}`;
@@ -675,7 +674,7 @@
             // Render the chart
             renderChart(cachedChartData);
             
-            console.log('✓ Chart created successfully with Yahoo Finance data');
+            console.log('✓ Chart created with weekly data');
             console.log('Data cached for 5 minutes');
             
         } catch (error) {
