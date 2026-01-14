@@ -327,7 +327,7 @@
     <h2>Market Benchmarks</h2>
     <div id="market-area" class="benchmarks-grid">Loading...</div>
 
-    <h2>Performance Since Jan 1, 2026 (Weekly)</h2>
+    <h2>Performance Since Jan 1, 2026</h2>
     <div class="chart-container">
         <canvas id="multiChart"></canvas>
     </div>
@@ -350,11 +350,9 @@
     const SHEET_ID = '1sEP1zRqhjJqp_cuLvggNBjiPdjbrCpMr5DW-7rIBF_s';
     const GID_MAIN = '1028487677';
     const GID_2025 = '869680458';
+    const TAB_HISTORY = 'History';
 
     let chartObj = null;
-    let cachedChartData = null; // Cache for chart data
-    let lastFetchTime = null;
-    const CACHE_DURATION = 5 * 60 * 1000; // 5 minutes in milliseconds
 
     const market2025 = {
         'S&P 500 (.INX)': 0.1639,
@@ -362,64 +360,8 @@
         'Dow Jones Industrial (.DJI)': 0.1297
     };
 
-    async function fetchYahooData(ticker) {
-        try {
-            // Fetch weekly data from Jan 1, 2026 to today
-            const startDate = new Date('2026-01-01');
-            const endDate = new Date();
-            
-            const period1 = Math.floor(startDate.getTime() / 1000);
-            const period2 = Math.floor(endDate.getTime() / 1000);
-            
-            // Use 1wk interval for weekly Friday closes
-            const url = `https://query1.finance.yahoo.com/v8/finance/chart/${ticker}?period1=${period1}&period2=${period2}&interval=1wk`;
-            
-            console.log(`Fetching weekly data for ${ticker}...`);
-            const response = await fetch(url);
-            const data = await response.json();
-            
-            if (data.chart.error || !data.chart.result) {
-                console.error(`Error for ${ticker}:`, data.chart.error);
-                return null;
-            }
-            
-            const result = data.chart.result[0];
-            const timestamps = result.timestamp;
-            const closes = result.indicators.quote[0].close;
-            
-            if (!timestamps || !closes || closes.length === 0) {
-                console.error(`No data for ${ticker}`);
-                return null;
-            }
-            
-            // Get first valid closing price (baseline)
-            const firstClose = closes.find(c => c !== null);
-            if (!firstClose) return null;
-            
-            // Calculate percentage change from first week for each week
-            const history = timestamps.map((ts, i) => {
-                if (closes[i] === null) return null;
-                return {
-                    date: new Date(ts * 1000),
-                    percentChange: ((closes[i] - firstClose) / firstClose) * 100
-                };
-            }).filter(item => item !== null);
-            
-            console.log(`✓ Got ${history.length} weekly data points for ${ticker}`);
-            return history;
-            
-        } catch (error) {
-            console.error(`Failed to fetch ${ticker}:`, error);
-            return null;
-        }
-    }
-
     async function update() {
         console.log('Starting update...');
-        
-        // Clear cache when user clicks Update button to force fresh data
-        cachedChartData = null;
-        lastFetchTime = null;
         
         try {
             const res = await fetch(`https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:json&gid=${GID_MAIN}`);
@@ -530,7 +472,7 @@
                     <div style="font-size:1.2em; color:var(--accent)">${leader.ticker} • ${leader.perfDisp}</div>
                 </div>`;
 
-            fetchHistory(participants);
+            fetchHistory();
             fetch2025Data();
         } catch (e) { 
             console.error('Error:', e);
@@ -538,116 +480,65 @@
         }
     }
 
-    async function fetchHistory(participants) {
-        // Check if we have cached data that's still fresh
-        const now = Date.now();
-        if (cachedChartData && lastFetchTime && (now - lastFetchTime < CACHE_DURATION)) {
-            console.log('Using cached chart data');
-            renderChart(cachedChartData);
-            return;
-        }
-        
-        console.log('Fetching WEEKLY historical data from Yahoo Finance...');
-        console.log('This should take 3-5 seconds...');
+    async function fetchHistory() {
+        console.log('Fetching history from Google Sheets...');
         
         try {
-            // Get all tickers from participants
-            const participantTickers = participants.map(p => p.ticker);
-            
-            // Market benchmark tickers
-            const marketTickers = ['^GSPC', '^IXIC', '^DJI'];
-            
-            const allTickers = [...participantTickers, ...marketTickers];
-            
-            console.log('Fetching weekly data for:', allTickers);
-            
-            // Fetch all tickers with shorter delay (weekly data is much lighter)
-            const results = [];
-            for (let i = 0; i < allTickers.length; i++) {
-                const ticker = allTickers[i];
-                const data = await fetchYahooData(ticker);
-                results.push(data);
-                
-                // Shorter delay for weekly data
-                if (i < allTickers.length - 1) {
-                    await new Promise(resolve => setTimeout(resolve, 150));
-                }
-            }
-            
-            // Filter out failed fetches
-            const validIndices = results.map((r, i) => r !== null ? i : -1).filter(i => i >= 0);
-            
-            if (validIndices.length === 0) {
-                console.error('No data could be fetched');
-                document.getElementById('multiChart').parentElement.innerHTML = 
-                    '<div style="padding: 20px; text-align: center; color: #999;">Unable to load chart. Please refresh.</div>';
+            const res = await fetch(`https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:json&sheet=${TAB_HISTORY}`);
+            const text = await res.text();
+            const json = JSON.parse(text.substring(text.indexOf('{'), text.lastIndexOf('}') + 1));
+            const rows = json.table.rows;
+            const cols = json.table.cols;
+
+            if (!rows || rows.length === 0) {
+                console.log('No history data found');
                 return;
             }
-            
-            // Find common dates
-            const allDatesSet = new Set();
-            validIndices.forEach(idx => {
-                if (results[idx]) {
-                    results[idx].forEach(item => {
-                        allDatesSet.add(item.date.toDateString());
-                    });
-                }
-            });
-            
-            const commonDates = Array.from(allDatesSet).sort((a, b) => new Date(a) - new Date(b));
-            
-            // Create datasets
+
+            console.log('History rows:', rows.length, 'cols:', cols.length);
+
+            const labels = rows.map(r => r.c[0]?.f || '');
             const colors = ['#1a2a6c', '#b21f1f', '#fdbb2d', '#27ae60', '#3498db', '#9b59b6', '#e67e22', '#1abc9c', '#2c3e50', '#7f8c8d'];
+
             const datasets = [];
             const participantDatasets = [];
             
-            allTickers.forEach((ticker, idx) => {
-                const history = results[idx];
-                if (!history) return;
+            for (let i = 1; i < cols.length; i++) {
+                if (!cols[i] || !cols[i].label) continue;
                 
-                const dataMap = new Map();
-                history.forEach(item => {
-                    dataMap.set(item.date.toDateString(), item.percentChange);
+                const cleanLabel = cols[i].label.toString().replace(/Close/gi, "").trim();
+
+                const tickerData = rows.map(r => {
+                    const val = r.c[i]?.v;
+                    const firstVal = rows[0].c[i]?.v;
+                    return (firstVal && val) ? ((val - firstVal) / firstVal) * 100 : 0;
                 });
-                
-                const chartData = commonDates.map(dateStr => dataMap.get(dateStr) || null);
-                
-                const isMarket = marketTickers.includes(ticker);
-                
-                let label = ticker;
-                if (ticker === '^GSPC') label = 'S&P 500';
-                else if (ticker === '^IXIC') label = 'NASDAQ';
-                else if (ticker === '^DJI') label = 'DOW';
-                
-                const dataset = {
-                    label,
-                    data: chartData,
-                    borderColor: colors[idx % colors.length],
-                    borderWidth: isMarket ? 4 : 2,
+
+                const isMarketBenchmark = cleanLabel.toUpperCase().includes("S&P") || 
+                                         cleanLabel.toUpperCase().includes("DOW") || 
+                                         cleanLabel.toUpperCase().includes("NASDAQ");
+
+                datasets.push({
+                    label: cleanLabel,
+                    data: tickerData,
+                    borderColor: colors[i-1] || '#ccc',
+                    borderWidth: isMarketBenchmark ? 4 : 2, 
                     fill: false,
                     tension: 0.1,
-                    pointRadius: 0,
-                    spanGaps: true
-                };
-                
-                datasets.push(dataset);
-                
-                if (!isMarket) {
-                    participantDatasets.push(chartData);
-                }
-            });
-            
-            // Calculate OUCT average
-            if (participantDatasets.length > 0) {
-                const avgData = commonDates.map((_, dateIdx) => {
-                    const values = participantDatasets
-                        .map(dataset => dataset[dateIdx])
-                        .filter(v => v !== null);
-                    
-                    if (values.length === 0) return null;
-                    return values.reduce((sum, v) => sum + v, 0) / values.length;
+                    pointRadius: 0
                 });
                 
+                if (!isMarketBenchmark) {
+                    participantDatasets.push(tickerData);
+                }
+            }
+
+            if (participantDatasets.length > 0) {
+                const avgData = rows.map((r, idx) => {
+                    const sum = participantDatasets.reduce((total, dataset) => total + (dataset[idx] || 0), 0);
+                    return sum / participantDatasets.length;
+                });
+
                 datasets.push({
                     label: "OUCT Covalent Partners",
                     data: avgData,
@@ -656,80 +547,53 @@
                     borderDash: [5, 5],
                     fill: false,
                     tension: 0.1,
-                    pointRadius: 0,
-                    spanGaps: true
+                    pointRadius: 0
                 });
             }
-            
-            // Format labels - show week ending date
-            const labels = commonDates.map(dateStr => {
-                const d = new Date(dateStr);
-                return `${d.getMonth() + 1}/${d.getDate()}`;
-            });
-            
-            // Cache the chart data
-            cachedChartData = { labels, datasets };
-            lastFetchTime = Date.now();
-            
-            // Render the chart
-            renderChart(cachedChartData);
-            
-            console.log('✓ Chart created with weekly data');
-            console.log('Data cached for 5 minutes');
-            
-        } catch (error) {
-            console.error('Chart error:', error);
-            document.getElementById('multiChart').parentElement.innerHTML = 
-                '<div style="padding: 20px; text-align: center; color: #999;">Chart temporarily unavailable</div>';
-        }
-    }
-    
-    function renderChart(chartData) {
-        const ctx = document.getElementById('multiChart').getContext('2d');
-        if (chartObj) chartObj.destroy();
-        
-        chartObj = new Chart(ctx, {
-            type: 'line',
-            data: chartData,
-            options: { 
-                responsive: true, 
-                maintainAspectRatio: false,
-                plugins: { 
-                    legend: { 
-                        position: 'bottom', 
-                        labels: { 
-                            boxWidth: 12, 
-                            font: { size: window.innerWidth < 480 ? 8 : 10 }
-                        } 
+
+            const ctx = document.getElementById('multiChart').getContext('2d');
+            if (chartObj) chartObj.destroy();
+            chartObj = new Chart(ctx, {
+                type: 'line',
+                data: { labels, datasets },
+                options: { 
+                    responsive: true, 
+                    maintainAspectRatio: false,
+                    plugins: { 
+                        legend: { 
+                            position: 'bottom', 
+                            labels: { 
+                                boxWidth: 12, 
+                                font: { size: window.innerWidth < 480 ? 8 : 10 }
+                            } 
+                        },
+                        tooltip: {
+                            mode: 'index',
+                            intersect: false
+                        }
                     },
-                    tooltip: {
-                        mode: 'index',
-                        intersect: false,
-                        callbacks: {
-                            label: (ctx) => {
-                                const value = ctx.parsed.y;
-                                return value !== null ? `${ctx.dataset.label}: ${value.toFixed(2)}%` : null;
-                            }
+                    scales: { 
+                        y: { 
+                            ticks: { 
+                                callback: v => v.toFixed(1) + '%',
+                                font: { size: window.innerWidth < 480 ? 9 : 11 }
+                            }, 
+                            title: { display: true, text: 'Return Since Jan 1 (%)' } 
+                        },
+                        x: { 
+                            ticks: { 
+                                maxTicksLimit: window.innerWidth < 480 ? 5 : 10,
+                                font: { size: window.innerWidth < 480 ? 9 : 11 }
+                            } 
                         }
                     }
-                },
-                scales: { 
-                    y: { 
-                        ticks: { 
-                            callback: v => v.toFixed(1) + '%',
-                            font: { size: window.innerWidth < 480 ? 9 : 11 }
-                        }, 
-                        title: { display: true, text: 'Return Since Jan 1 (%)' } 
-                    },
-                    x: { 
-                        ticks: { 
-                            maxTicksLimit: window.innerWidth < 480 ? 5 : 10,
-                            font: { size: window.innerWidth < 480 ? 9 : 11 }
-                        } 
-                    }
                 }
-            }
-        });
+            });
+            
+            console.log('✓ Chart created from Google Sheets History tab');
+        } catch (e) { 
+            console.error("Chart Error:", e);
+        }
     }
 
     async function fetch2025Data() {
