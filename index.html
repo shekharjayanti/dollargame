@@ -381,7 +381,15 @@
         'Dow Jones Industrial (.DJI)': 0.1297
     };
 
+    let isUpdating = false;
+
     async function update() {
+        if (isUpdating) {
+            console.log('Update already in progress, skipping...');
+            return;
+        }
+        
+        isUpdating = true;
         console.log('Starting update...');
         
         try {
@@ -541,6 +549,8 @@
         } catch (e) { 
             console.error('Error:', e);
             document.getElementById('participant-area').innerHTML = `<div class="error-msg">❌ Error: ${e.message}</div>`;
+        } finally {
+            isUpdating = false;
         }
     }
 
