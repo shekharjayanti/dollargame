@@ -399,6 +399,9 @@
                     const name = r.c[0].v || "";
                     const ticker = r.c[1].v || "";
                     if(ticker === 'Ticker' || name === 'Participant') return;
+                    
+                    // Skip any OUCT rows from spreadsheet
+                    if(name.toUpperCase().includes('OUCT') || name.toUpperCase().includes('COVALENT')) return;
 
                     const price = r.c[3] ? (r.c[3].f || r.c[3].v) : '0';
                     const perfRaw = r.c[4] ? r.c[4].v : 0;
