@@ -74,7 +74,7 @@
         }
         
         .chart-container { 
-            height: 300px; 
+            height: 400px; 
             margin-bottom: 25px; 
             background: #fff; 
             padding: 10px; 
@@ -251,7 +251,7 @@
             }
             
             .chart-container {
-                height: 250px;
+                height: 300px;
                 padding: 5px;
             }
             
@@ -302,7 +302,7 @@
             }
             
             .chart-container {
-                height: 220px;
+                height: 250px;
             }
             
             .benchmarks-grid {
@@ -339,6 +339,17 @@
     <div id="market-area" class="benchmarks-grid">Loading...</div>
 
     <h2>Performance Since Jan 1, 2026</h2>
+    <div style="margin-bottom: 15px;">
+        <label for="chart-view" style="font-weight: 600; margin-right: 10px;">View:</label>
+        <select id="chart-view" onchange="updateChartView()" style="padding: 8px 12px; border-radius: 6px; border: 1px solid #ddd; font-size: 0.95em; cursor: pointer;">
+            <option value="all">All Participants + Markets</option>
+            <option value="top5">Top 5 Performers</option>
+            <option value="bottom5">Bottom 5 Performers</option>
+            <option value="vsmarket">Participants vs Markets</option>
+            <option value="participants">Participants Only</option>
+            <option value="markets">Markets + OUCT Only</option>
+        </select>
+    </div>
     <div class="chart-container">
         <canvas id="multiChart"></canvas>
     </div>
@@ -367,6 +378,8 @@
     const TAB_HISTORY = 'History';
 
     let chartObj = null;
+    let allChartDatasets = [];
+    let chartLabels = [];
 
     const market2025 = {
         'S&P 500 (.INX)': 0.1639,
@@ -413,6 +426,9 @@
             
             const avgPerf = participants.reduce((sum, p) => sum + p.perfRaw, 0) / participants.length;
             const avgPerfDisp = (avgPerf * 100).toFixed(2) + '%';
+            
+            // Store leader ticker for chart styling
+            const leaderTicker = participants[0].ticker;
             
             let pTable = `<table><tr><th>#</th><th>Name</th><th>Ticker</th><th style="text-align:right">Price</th><th style="text-align:right">Gain</th></tr>`;
             participants.forEach((p, i) => {
@@ -489,7 +505,7 @@
                     <div style="font-size:1.2em; color:var(--accent)">${leader.ticker} • ${leader.perfDisp}</div>
                 </div>`;
 
-            fetchHistory(participants);
+            fetchHistory(participants, leaderTicker);
             fetch2025Data();
         } catch (e) { 
             console.error('Error:', e);
@@ -497,7 +513,7 @@
         }
     }
 
-    async function fetchHistory(participants) {
+    async function fetchHistory(participants, leaderTicker) {
         console.log('Fetching history from Google Sheets...');
         
         try {
@@ -517,12 +533,6 @@
             const labels = rows.map(r => r.c[0]?.f || '');
             const colors = ['#1a2a6c', '#b21f1f', '#fdbb2d', '#27ae60', '#3498db', '#9b59b6', '#e67e22', '#1abc9c', '#2c3e50', '#7f8c8d'];
 
-            // Create participant performance map
-            const participantPerfMap = {};
-            participants.forEach((p) => {
-                participantPerfMap[p.ticker.toUpperCase()] = p.perfRaw;
-            });
-
             const allDatasets = [];
             const participantDatasets = [];
             
@@ -541,18 +551,21 @@
                                          cleanLabel.toUpperCase().includes("DOW") || 
                                          cleanLabel.toUpperCase().includes("NASDAQ");
 
-                // Get current performance for sorting (last data point)
                 const currentPerf = tickerData[tickerData.length - 1] || 0;
+                
+                // Check if this is the leader's ticker
+                const isLeader = cleanLabel.toUpperCase() === leaderTicker.toUpperCase();
                 
                 allDatasets.push({
                     label: cleanLabel,
                     data: tickerData,
                     borderColor: colors[i-1] || '#ccc',
-                    borderWidth: isMarketBenchmark ? 4 : 2, 
+                    borderWidth: isLeader ? 5 : (isMarketBenchmark ? 4 : 2),
                     fill: false,
                     tension: 0.1,
                     pointRadius: 0,
                     isMarket: isMarketBenchmark,
+                    isLeader: isLeader,
                     performance: currentPerf
                 });
                 
@@ -561,7 +574,6 @@
                 }
             }
 
-            // Calculate OUCT average
             let ductAvgPerf = 0;
             if (participantDatasets.length > 0) {
                 const avgData = rows.map((r, idx) => {
@@ -575,62 +587,114 @@
                     label: "OUCT Covalent Partners",
                     data: avgData,
                     borderColor: "#667eea",
-                    borderWidth: 3,
+                    borderWidth: 5,
                     borderDash: [5, 5],
                     fill: false,
                     tension: 0.1,
                     pointRadius: 0,
                     isMarket: false,
+                    isLeader: false,
                     performance: ductAvgPerf
                 });
             }
 
-            // Sort by performance: highest to lowest
+            // Sort by performance: highest to lowest (for legend order)
             allDatasets.sort((a, b) => b.performance - a.performance);
 
-            const ctx = document.getElementById('multiChart').getContext('2d');
-            if (chartObj) chartObj.destroy();
-            chartObj = new Chart(ctx, {
-                type: 'line',
-                data: { labels, datasets: allDatasets },
-                options: { 
-                    responsive: true, 
-                    maintainAspectRatio: false,
-                    plugins: { 
-                        legend: { 
-                            position: 'bottom', 
-                            labels: { 
-                                boxWidth: 12, 
-                                font: { size: window.innerWidth < 480 ? 8 : 10 }
-                            } 
-                        },
-                        tooltip: {
-                            mode: 'index',
-                            intersect: false
-                        }
-                    },
-                    scales: { 
-                        y: { 
-                            ticks: { 
-                                callback: v => v.toFixed(1) + '%',
-                                font: { size: window.innerWidth < 480 ? 9 : 11 }
-                            }, 
-                            title: { display: true, text: 'Return Since Jan 1 (%)' } 
-                        },
-                        x: { 
-                            ticks: { 
-                                maxTicksLimit: window.innerWidth < 480 ? 5 : 10,
-                                font: { size: window.innerWidth < 480 ? 9 : 11 }
-                            } 
-                        }
-                    }
-                }
-            });
+            allChartDatasets = allDatasets;
+            chartLabels = labels;
+
+            renderChart(allDatasets, labels);
             
             console.log('✓ Chart created from Google Sheets History tab');
         } catch (e) { 
             console.error("Chart Error:", e);
         }
+    }
+
+    function renderChart(datasets, labels) {
+        const ctx = document.getElementById('multiChart').getContext('2d');
+        if (chartObj) chartObj.destroy();
+        chartObj = new Chart(ctx, {
+            type: 'line',
+            data: { labels, datasets },
+            options: { 
+                responsive: true, 
+                maintainAspectRatio: false,
+                plugins: { 
+                    legend: { 
+                        position: 'bottom', 
+                        labels: { 
+                            boxWidth: 12, 
+                            font: { size: window.innerWidth < 480 ? 8 : 10 }
+                        } 
+                    },
+                    tooltip: {
+                        mode: 'index',
+                        intersect: false
+                    }
+                },
+                scales: { 
+                    y: { 
+                        ticks: { 
+                            callback: v => v.toFixed(1) + '%',
+                            font: { size: window.innerWidth < 480 ? 9 : 11 }
+                        }, 
+                        title: { display: true, text: 'Return Since Jan 1 (%)' } 
+                    },
+                    x: { 
+                        ticks: { 
+                            maxTicksLimit: window.innerWidth < 480 ? 5 : 10,
+                            font: { size: window.innerWidth < 480 ? 9 : 11 }
+                        } 
+                    }
+                }
+            }
+        });
+    }
+
+    function updateChartView() {
+        const view = document.getElementById('chart-view').value;
+        let filteredDatasets = [];
+        
+        const participantDatasets = allChartDatasets.filter(d => !d.isMarket && d.label !== "OUCT Covalent Partners");
+        const marketDatasets = allChartDatasets.filter(d => d.isMarket);
+        const ouctDataset = allChartDatasets.find(d => d.label === "OUCT Covalent Partners");
+        
+        switch(view) {
+            case 'all':
+                filteredDatasets = allChartDatasets;
+                break;
+                
+            case 'top5':
+                const top5 = participantDatasets.slice(0, 5);
+                filteredDatasets = [...top5, ...marketDatasets];
+                if (ouctDataset) filteredDatasets.push(ouctDataset);
+                break;
+                
+            case 'bottom5':
+                const bottom5 = participantDatasets.slice(-5);
+                filteredDatasets = [...bottom5, ...marketDatasets];
+                if (ouctDataset) filteredDatasets.push(ouctDataset);
+                break;
+                
+            case 'vsmarket':
+                filteredDatasets = [...marketDatasets];
+                if (ouctDataset) filteredDatasets.push(ouctDataset);
+                break;
+                
+            case 'participants':
+                filteredDatasets = [...participantDatasets];
+                if (ouctDataset) filteredDatasets.push(ouctDataset);
+                break;
+                
+            case 'markets':
+                filteredDatasets = [...marketDatasets];
+                if (ouctDataset) filteredDatasets.push(ouctDataset);
+                break;
+        }
+        
+        renderChart(filteredDatasets, chartLabels);
     }
 
     async function fetch2025Data() {
@@ -698,19 +762,4 @@
             }
             
             document.getElementById('market-2025-area').innerHTML = benchmarks2025.map(b => {
-                return `
-                <div class="benchmark-card">
-                    <div style="font-weight:700;">${b.name}</div>
-                    <div class="${b.perfRaw >= 0 ? 'pos' : 'neg'}">${(b.perfRaw > 0 ? '+' : '') + b.perfDisp}</div>
-                </div>`;
-            }).join('');
-
-        } catch (e) { 
-            console.error('Error fetching 2025 data:', e);
-        }
-    }
-
-    update();
-</script>
-</body>
-</html>
+                return
