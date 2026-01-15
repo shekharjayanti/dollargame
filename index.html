@@ -339,6 +339,17 @@
     <div id="market-area" class="benchmarks-grid">Loading...</div>
 
     <h2>Performance Since Jan 1, 2026</h2>
+    <div style="margin-bottom: 15px;">
+        <label for="chart-view" style="font-weight: 600; margin-right: 10px;">View:</label>
+        <select id="chart-view" onchange="updateChartView()" style="padding: 8px 12px; border-radius: 6px; border: 1px solid #ddd; font-size: 0.95em; cursor: pointer;">
+            <option value="all">All Participants + Markets</option>
+            <option value="top5">Top 5 Performers</option>
+            <option value="bottom5">Bottom 5 Performers</option>
+            <option value="vsmarket">Participants vs Markets</option>
+            <option value="participants">Participants Only</option>
+            <option value="markets">Markets + OUCT Only</option>
+        </select>
+    </div>
     <div class="chart-container">
         <canvas id="multiChart"></canvas>
     </div>
@@ -367,6 +378,8 @@
     const TAB_HISTORY = 'History';
 
     let chartObj = null;
+    let allChartDatasets = []; // Store all datasets globally
+    let chartLabels = [];
 
     const market2025 = {
         'S&P 500 (.INX)': 0.1639,
@@ -588,11 +601,25 @@
             // Sort by performance: highest to lowest
             allDatasets.sort((a, b) => b.performance - a.performance);
 
-            const ctx = document.getElementById('multiChart').getContext('2d');
-            if (chartObj) chartObj.destroy();
-            chartObj = new Chart(ctx, {
-                type: 'line',
-                data: { labels, datasets: allDatasets },
+            // Store globally for filtering
+            allChartDatasets = allDatasets;
+            chartLabels = labels;
+
+            // Render with current view
+            renderChart(allDatasets, labels);
+            
+            console.log('✓ Chart created from Google Sheets History tab');
+        } catch (e) { 
+            console.error("Chart Error:", e);
+        }
+    }
+
+    function renderChart(datasets, labels) {
+        const ctx = document.getElementById('multiChart').getContext('2d');
+        if (chartObj) chartObj.destroy();
+        chartObj = new Chart(ctx, {
+            type: 'line',
+            data: { labels, datasets },
                 options: { 
                     responsive: true, 
                     maintainAspectRatio: false,
