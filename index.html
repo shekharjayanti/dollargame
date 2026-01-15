@@ -1,9 +1,4 @@
-participants.sort((a, b) => b.perfRaw - a.perfRaw);
-            
-            const avgPerf = participants.reduce((sum, p) => sum + p.perfRaw, 0) / participants.length;
-            const avgPerfDisp = (avgPerf * 100).toFixed(2) + '%';
-            
-            let pTable = `<table><tr><th>#</th><th>Name</th><th>Ticker</th><th style="text-align:right">Price</th><th style="text-align:right">Gain</th></tr>`;<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
@@ -252,14 +247,7 @@ participants.sort((a, b) => b.perfRaw - a.perfRaw);
             }
             
             .stat-card {
-                grid-template-columns: 1fr;
-                gap: 20px;
-            }
-            
-            .stat-section:first-child {
-                border-right: none;
-                border-bottom: 2px solid rgba(255,255,255,0.3);
-                padding-bottom: 15px;
+                padding: 15px;
             }
             
             .chart-container {
@@ -338,7 +326,6 @@ participants.sort((a, b) => b.perfRaw - a.perfRaw);
     <header>
         <h1>🏆 The $ Game: 2026</h1>
         <button class="refresh-btn" onclick="update()">🔄 Update Live</button>
-        <small style="color: #999; font-size: 0.7em;">v2.0.1</small>
     </header>
 
     <div id="leader-card"></div>
@@ -387,17 +374,8 @@ participants.sort((a, b) => b.perfRaw - a.perfRaw);
         'Dow Jones Industrial (.DJI)': 0.1297
     };
 
-    let isUpdating = false;
-
     async function update() {
-        if (isUpdating) {
-            console.log('Update already in progress, skipping...');
-            return;
-        }
-        
-        isUpdating = true;
         console.log('Starting update...');
-        
         try {
             const res = await fetch(`https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:json&gid=${GID_MAIN}`);
             const text = await res.text();
@@ -413,9 +391,6 @@ participants.sort((a, b) => b.perfRaw - a.perfRaw);
                     const name = r.c[0].v || "";
                     const ticker = r.c[1].v || "";
                     if(ticker === 'Ticker' || name === 'Participant') return;
-                    
-                    // Skip any OUCT rows from spreadsheet
-                    if(name.toUpperCase().includes('OUCT') || name.toUpperCase().includes('COVALENT')) return;
 
                     const price = r.c[3] ? (r.c[3].f || r.c[3].v) : '0';
                     const perfRaw = r.c[4] ? r.c[4].v : 0;
@@ -426,7 +401,6 @@ participants.sort((a, b) => b.perfRaw - a.perfRaw);
                     if (participants.length < 10) {
                         participants.push(item);
                     } else {
-                        // Only add market benchmarks (S&P, Nasdaq, Dow)
                         benchmarks.push(item);
                         if (name.toUpperCase().includes("S&P") || ticker.includes("INX")) {
                             sp500Perf = perfRaw;
@@ -434,6 +408,13 @@ participants.sort((a, b) => b.perfRaw - a.perfRaw);
                     }
                 }
             });
+
+            participants.sort((a, b) => b.perfRaw - a.perfRaw);
+            
+            const avgPerf = participants.reduce((sum, p) => sum + p.perfRaw, 0) / participants.length;
+            const avgPerfDisp = (avgPerf * 100).toFixed(2) + '%';
+            
+            let pTable = `<table><tr><th>#</th><th>Name</th><th>Ticker</th><th style="text-align:right">Price</th><th style="text-align:right">Gain</th></tr>`;
             participants.forEach((p, i) => {
                 const isBeatingMarket = p.perfRaw > sp500Perf && sp500Perf !== -999;
                 const color = p.perfRaw >= 0 ? 'pos' : 'neg';
@@ -447,7 +428,7 @@ participants.sort((a, b) => b.perfRaw - a.perfRaw);
                     const logValue = Math.log10(Math.max(outperformance, 0.1) + 1);
                     const maxLog = Math.log10(11);
                     const scaleFactor = Math.min(logValue / maxLog, 1);
-                    const size = 0.7 + (scaleFactor * 0.8); // Thinner: 0.7 to 1.5em
+                    const size = 0.7 + (scaleFactor * 0.8);
                     rocketSize = size.toFixed(2) + 'em';
                 }
                 
@@ -472,6 +453,8 @@ participants.sort((a, b) => b.perfRaw - a.perfRaw);
                 
                 let bgColor = '';
                 let borderColor = '';
+                let textColor = '#333';
+                
                 if (isOUCT) {
                     const perf = b.perfRaw * 100;
                     if (perf >= 0) {
@@ -480,19 +463,21 @@ participants.sort((a, b) => b.perfRaw - a.perfRaw);
                         const saturation = 40 + (intensity * 50);
                         bgColor = `hsl(140, ${saturation}%, ${lightness}%)`;
                         borderColor = `hsl(140, ${saturation + 10}%, ${lightness - 10}%)`;
+                        textColor = '#1a5a3a';
                     } else {
                         const intensity = Math.min(Math.abs(perf) / 20, 1);
                         const lightness = 95 - (intensity * 45);
                         const saturation = 40 + (intensity * 50);
                         bgColor = `hsl(0, ${saturation}%, ${lightness}%)`;
                         borderColor = `hsl(0, ${saturation + 10}%, ${lightness - 10}%)`;
+                        textColor = '#7a1e1e';
                     }
                 }
                 
                 return `
-                <div class="benchmark-card" ${isOUCT ? `style="background: ${bgColor}; color: #333; border: 2px solid ${borderColor};"` : ''}>
-                    <div style="font-weight:700; ${isOUCT ? 'color: #333;' : ''}">${b.name}</div>
-                    <div class="${isOUCT ? '' : (b.perfRaw >= 0 ? 'pos' : 'neg')}" ${isOUCT ? 'style="color: #333; font-weight: bold; font-size: 1.1em;"' : ''}>${(b.perfRaw > 0 ? '+' : '') + b.perfDisp}</div>
+                <div class="benchmark-card" ${isOUCT ? `style="background: ${bgColor}; border: 2px solid ${borderColor};"` : ''}>
+                    <div style="font-weight:700; ${isOUCT ? `color: ${textColor};` : ''}">${b.name}</div>
+                    <div class="${isOUCT ? '' : (b.perfRaw >= 0 ? 'pos' : 'neg')}" ${isOUCT ? `style="color: ${textColor}; font-weight: bold; font-size: 1.1em;"` : ''}>${(b.perfRaw > 0 ? '+' : '') + b.perfDisp}</div>
                 </div>`;
             }).join('');
 
@@ -504,53 +489,11 @@ participants.sort((a, b) => b.perfRaw - a.perfRaw);
                     <div style="font-size:1.2em; color:var(--accent)">${leader.ticker} • ${leader.perfDisp}</div>
                 </div>`;
 
-            // Add OUCT to market benchmarks with dynamic color
-            benchmarks.push({
-                name: 'OUCT Covalent Partners',
-                perfRaw: avgPerf,
-                perfDisp: avgPerfDisp
-            });
-
-            document.getElementById('market-area').innerHTML = benchmarks.map(b => {
-                const isOUCT = b.name === 'OUCT Covalent Partners';
-                
-                let bgColor = '';
-                let borderColor = '';
-                let textColor = '#333';
-                
-                if (isOUCT) {
-                    const perf = b.perfRaw * 100;
-                    if (perf >= 0) {
-                        const intensity = Math.min(perf / 20, 1);
-                        const lightness = 95 - (intensity * 45);
-                        const saturation = 40 + (intensity * 50);
-                        bgColor = `hsl(140, ${saturation}%, ${lightness}%)`;
-                        borderColor = `hsl(140, ${saturation + 10}%, ${lightness - 10}%)`;
-                        textColor = '#1a5a3a'; // Dark green text on green background
-                    } else {
-                        const intensity = Math.min(Math.abs(perf) / 20, 1);
-                        const lightness = 95 - (intensity * 45);
-                        const saturation = 40 + (intensity * 50);
-                        bgColor = `hsl(0, ${saturation}%, ${lightness}%)`;
-                        borderColor = `hsl(0, ${saturation + 10}%, ${lightness - 10}%)`;
-                        textColor = '#7a1e1e'; // Dark red text on red background
-                    }
-                }
-                
-                return `
-                <div class="benchmark-card" ${isOUCT ? `style="background: ${bgColor}; border: 2px solid ${borderColor};"` : ''}>
-                    <div style="font-weight:700; ${isOUCT ? `color: ${textColor};` : ''}">${b.name}</div>
-                    <div class="${isOUCT ? '' : (b.perfRaw >= 0 ? 'pos' : 'neg')}" ${isOUCT ? `style="color: ${textColor}; font-weight: bold; font-size: 1.1em;"` : ''}>${(b.perfRaw > 0 ? '+' : '') + b.perfDisp}</div>
-                </div>`;
-            }).join('');
-
             fetchHistory(participants);
             fetch2025Data();
         } catch (e) { 
             console.error('Error:', e);
             document.getElementById('participant-area').innerHTML = `<div class="error-msg">❌ Error: ${e.message}</div>`;
-        } finally {
-            isUpdating = false;
         }
     }
 
@@ -727,7 +670,6 @@ participants.sort((a, b) => b.perfRaw - a.perfRaw);
             const avgFinal = participants2025.reduce((sum, p) => sum + p.finalRaw, 0) / participants2025.length;
             const avgFinalDisp = (avgFinal * 100).toFixed(2) + '%';
             
-            // Update OUCT badge in 2025 section with full name
             const ductDisplayColor = avgFinal >= 0 ? '#27ae60' : '#e74c3c';
             document.getElementById('ouct-2025-badge').innerHTML = `OUCT Covalent Partners: <strong style="color: ${ductDisplayColor}">${(avgFinal > 0 ? '+' : '') + avgFinalDisp}</strong>`;
             
@@ -755,7 +697,6 @@ participants.sort((a, b) => b.perfRaw - a.perfRaw);
                 });
             }
             
-            // Don't add OUCT to 2025 market benchmarks
             document.getElementById('market-2025-area').innerHTML = benchmarks2025.map(b => {
                 return `
                 <div class="benchmark-card">
