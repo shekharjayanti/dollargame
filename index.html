@@ -118,4 +118,41 @@
             
             const datasets = [];
             for (let i = 1; i < cols.length; i++) {
-                if (!cols[i] ||
+                if (!cols[i] || !cols[i].label) continue;
+                const tickerData = rows.map(r => {
+                    const val = r.c[i] ? parseFloat(r.c[i].v || 0) : 0;
+                    const firstVal = rows[0].c[i] ? parseFloat(rows[0].c[i].v || 1) : 1;
+                    return ((val - firstVal) / firstVal) * 100;
+                });
+                datasets.push({ label: cols[i].label, data: tickerData, borderColor: colors[i % colors.length], borderWidth: 2, fill: false, pointRadius: 0 });
+            }
+            new Chart(document.getElementById('multiChart'), { type: 'line', data: { labels, datasets }, options: { responsive: true, maintainAspectRatio: false } });
+        } catch (e) { console.error("History Error"); }
+    }
+
+    async function fetch2025() {
+        try {
+            const res = await fetch(`https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:json&gid=${GID_2025}`);
+            const text = await res.text();
+            const json = JSON.parse(text.substring(text.indexOf('{'), text.lastIndexOf('}') + 1));
+            const rows = json.table.rows;
+            let p2025 = [];
+            rows.forEach(r => {
+                if(r.c && r.c[0] && r.c[1] && r.c[1].v) {
+                    if(r.c[1].v === 'Ticker') return;
+                    const gain = r.c[5] ? parseFloat(r.c[5].v || 0) : 0;
+                    p2025.push({ name: r.c[0].v, ticker: r.c[1].v, gain, disp: (gain*100).toFixed(2)+'%' });
+                }
+            });
+            p2025.sort((a,b) => b.gain - a.gain);
+            const avg = p2025.reduce((s,p)=>s+p.gain,0)/p2025.length;
+            document.getElementById('ouct-2025-badge').innerText = `OUCT 2025 Average: ${(avg*100).toFixed(2)}%`;
+            let table = `<table><tr><th>#</th><th>Name</th><th>Ticker</th><th style="text-align:right">Final</th></tr>`;
+            p2025.forEach((p,i) => { table += `<tr><td>#${i+1}</td><td>${p.name}</td><td><span class="ticker">${p.ticker}</span></td><td style="text-align:right" class="${p.gain>=0?'pos':'neg'}">${p.disp}</td></tr>`; });
+            document.getElementById('participant-2025-area').innerHTML = table + '</table>';
+        } catch (e) { console.error("2025 Error"); }
+    }
+    update();
+</script>
+</body>
+</html>
