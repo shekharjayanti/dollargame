@@ -6,85 +6,27 @@
     <title>The $ Game - Alpha Dashboard</title>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
-        :root { 
-            --primary: #1a2a6c; 
-            --win: #27ae60; 
-            --loss: #e74c3c; 
-            --accent: #fdbb2d; 
-            --bg: #f4f7f6; 
-        }
+        :root { --primary: #1a2a6c; --win: #27ae60; --loss: #e74c3c; --accent: #fdbb2d; --bg: #f4f7f6; }
         * { box-sizing: border-box; }
-        body { 
-            font-family: 'Segoe UI', system-ui, sans-serif; 
-            background: var(--bg); 
-            padding: 10px; 
-            color: #333;
-            margin: 0;
-        }
-        .dashboard { 
-            max-width: 1000px; 
-            margin: 0 auto; 
-            background: white; 
-            padding: 20px; 
-            border-radius: 15px; 
-            box-shadow: 0 10px 30px rgba(0,0,0,0.1); 
-        }
-        header { 
-            display: flex; 
-            justify-content: space-between; 
-            align-items: center; 
-            margin-bottom: 20px; 
-            border-bottom: 2px solid #eee; 
-            padding-bottom: 15px;
-            flex-wrap: wrap;
-            gap: 10px;
-        }
+        body { font-family: 'Segoe UI', system-ui, sans-serif; background: var(--bg); padding: 10px; color: #333; margin: 0; }
+        .dashboard { max-width: 1000px; margin: 0 auto; background: white; padding: 20px; border-radius: 15px; box-shadow: 0 10px 30px rgba(0,0,0,0.1); }
+        header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; border-bottom: 2px solid #eee; padding-bottom: 15px; flex-wrap: wrap; gap: 10px; }
         h1 { font-size: 1.5em; margin: 0; flex: 1; min-width: 200px; }
-        h2 { font-size: 1.2em; margin: 25px 0 15px 0; }
-        
-        .stat-card { 
-            background: linear-gradient(135deg, #1a2a6c, #b21f1f); 
-            color: white; 
-            padding: 20px; 
-            border-radius: 15px; 
-            text-align: center; 
-            margin-bottom: 25px;
-        }
+        .stat-card { background: linear-gradient(135deg, #1a2a6c, #b21f1f); color: white; padding: 20px; border-radius: 15px; text-align: center; margin-bottom: 25px; }
         .winner-name { font-size: 2em; font-weight: 800; margin: 5px 0; }
-        
-        .chart-container { 
-            height: 350px; 
-            margin-bottom: 25px; 
-            background: #fff; 
-            padding: 10px; 
-            border-radius: 12px; 
-            border: 1px solid #eee;
-            position: relative;
-        }
-        
+        .chart-container { height: 350px; margin-bottom: 25px; background: #fff; padding: 10px; border-radius: 12px; border: 1px solid #eee; position: relative; }
         .table-wrapper { overflow-x: auto; margin-bottom: 20px; border-radius: 8px; border: 1px solid #eee; }
         table { width: 100%; border-collapse: collapse; min-width: 450px; }
         th { text-align: left; padding: 12px 8px; font-size: 0.75em; color: #888; text-transform: uppercase; border-bottom: 2px solid #eee; background: #fafafa; }
-        td { padding: 12px 8px; border-bottom: 1px solid #f8f8f8; font-size: 0.95em; vertical-align: middle; }
+        td { padding: 12px 8px; border-bottom: 1px solid #f8f8f8; font-size: 0.95em; }
         .ticker { font-family: monospace; background: #f0f7ff; color: #007bff; padding: 4px 8px; border-radius: 5px; font-weight: bold; }
         .pos { color: var(--win); font-weight: bold; }
         .neg { color: var(--loss); font-weight: bold; }
-        
         .benchmarks-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 10px; }
         .benchmark-card { background: #f8f9fa; border-radius: 12px; padding: 12px; border: 1px solid #edf2f7; text-align: center; }
-        
-        .section-divider {
-            margin: 50px 0 30px 0;
-            padding: 20px;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            border-radius: 15px;
-            text-align: center;
-            color: white;
-        }
+        .section-divider { margin: 50px 0 30px 0; padding: 20px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border-radius: 15px; text-align: center; color: white; }
         .ouct-badge { display: inline-block; background: white; color: #333; padding: 5px 15px; border-radius: 20px; font-weight: bold; margin-top: 10px; }
-        
         .refresh-btn { background: var(--primary); color: white; border: none; padding: 10px 15px; border-radius: 8px; cursor: pointer; font-weight: 600; }
-        .error-msg { color: #e74c3c; padding: 20px; text-align: center; font-weight: bold; }
     </style>
 </head>
 <body>
@@ -93,40 +35,18 @@
         <h1>🏆 The $ Game: 2026</h1>
         <button class="refresh-btn" onclick="update()">🔄 Refresh</button>
     </header>
-
     <div id="leader-card"></div>
-
     <h2>Current Leaderboard</h2>
-    <div class="table-wrapper">
-        <div id="participant-area" style="padding:20px; text-align:center;">Syncing with Global Data...</div>
-    </div>
-
+    <div class="table-wrapper"><div id="participant-area" style="padding:20px; text-align:center;">Syncing...</div></div>
     <h2>Market Benchmarks (2026)</h2>
     <div id="market-area" class="benchmarks-grid"></div>
-
     <h2>Performance Trends</h2>
-    <div style="margin-bottom: 10px;">
-        <select id="chart-view" onchange="updateChartView()" style="padding: 8px; border-radius: 5px; border: 1px solid #ddd; width: 100%; max-width: 300px;">
-            <option value="all">Show All</option>
-            <option value="top5">Top 5 Only</option>
-            <option value="vsmarket">vs Market Benchmarks</option>
-        </select>
-    </div>
-    <div class="chart-container">
-        <canvas id="multiChart"></canvas>
-    </div>
-
+    <div class="chart-container"><canvas id="multiChart"></canvas></div>
     <div class="section-divider">
-        <h2 style="margin:0; color:white;">📅 2025 Historical Results</h2>
-        <div id="ouct-2025-badge" class="ouct-badge">Calculating...</div>
+        <h2 style="margin:0; color:white;">📅 2025 Final Results</h2>
+        <div id="ouct-2025-badge" class="ouct-badge">Loading...</div>
     </div>
-
-    <h2>2025 Final Leaderboard</h2>
-    <div class="table-wrapper">
-        <div id="participant-2025-area"></div>
-    </div>
-
-    <h2>2025 Market Benchmarks</h2>
+    <div class="table-wrapper"><div id="participant-2025-area"></div></div>
     <div id="market-2025-area" class="benchmarks-grid"></div>
 </div>
 
@@ -135,16 +55,6 @@
     const GID_MAIN = '1028487677';
     const GID_2025 = '869680458';
     const TAB_HISTORY = 'History';
-
-    let chartObj = null;
-    let allChartDatasets = [];
-    let chartLabels = [];
-
-    const market2025 = {
-        'S&P 500 (.INX)': 0.1639,
-        'Nasdaq (.IXIC)': 0.2034,
-        'Dow Jones (.DJI)': 0.1297
-    };
 
     async function update() {
         try {
@@ -158,49 +68,54 @@
             let sp500Perf = 0;
 
             rows.forEach((r) => {
-                if(r.c && r.c[0] && r.c[1]) {
-                    const name = r.c[0].v ? r.c[0].v.toString() : "";
-                    const ticker = r.c[1].v ? r.c[1].v.toString() : "";
-                    
-                    if(!ticker || ticker === 'Ticker' || name === 'Participant') return;
+                if(r.c && r.c[0] && r.c[1] && r.c[1].v) {
+                    const name = r.c[0].v.toString();
+                    const ticker = r.c[1].v.toString();
+                    if(ticker === 'Ticker' || name === 'Participant') return;
 
                     const price = r.c[3] ? (r.c[3].f || r.c[3].v || '0') : '0';
                     const perfRaw = r.c[4] ? parseFloat(r.c[4].v || 0) : 0;
-                    const perfDisp = (perfRaw * 100).toFixed(2) + '%';
-                    
-                    const item = { name, ticker, price, perfRaw, perfDisp };
+                    const item = { name, ticker, price, perfRaw, perfDisp: (perfRaw * 100).toFixed(2) + '%' };
                     
                     if (participants.length < 10) participants.push(item);
                     else {
                         benchmarks.push(item);
-                        if (name.toUpperCase().includes("S&P")) sp500Perf = perfRaw;
+                        if (name.includes("S&P")) sp500Perf = perfRaw;
                     }
                 }
             });
 
-            if (participants.length > 0) {
-                participants.sort((a, b) => b.perfRaw - a.perfRaw);
-                const avgPerf = participants.reduce((sum, p) => sum + p.perfRaw, 0) / participants.length;
+            participants.sort((a, b) => b.perfRaw - a.perfRaw);
+            const avgPerf = participants.reduce((sum, p) => sum + p.perfRaw, 0) / participants.length;
 
-                // Render 2026 Table
-                let pTable = `<table><tr><th>#</th><th>Name</th><th>Ticker</th><th style="text-align:right">Price</th><th style="text-align:right">Gain</th></tr>`;
-                participants.forEach((p, i) => {
-                    const color = p.perfRaw >= 0 ? 'pos' : 'neg';
-                    const rocket = (p.perfRaw > sp500Perf && sp500Perf !== 0) ? '🚀' : '';
-                    pTable += `<tr><td>#${i+1}</td><td><strong>${p.name}</strong> ${rocket}</td><td><span class="ticker">${p.ticker}</span></td><td style="text-align:right">$${p.price}</td><td style="text-align:right" class="${color}">${(p.perfRaw > 0 ? '+' : '') + p.perfDisp}</td></tr>`;
-                });
-                document.getElementById('participant-area').innerHTML = pTable + '</table>';
+            let pTable = `<table><tr><th>#</th><th>Name</th><th>Ticker</th><th style="text-align:right">Price</th><th style="text-align:right">Gain</th></tr>`;
+            participants.forEach((p, i) => {
+                const rocket = (p.perfRaw > sp500Perf && sp500Perf !== 0) ? '🚀' : '';
+                pTable += `<tr><td>#${i+1}</td><td><strong>${p.name}</strong> ${rocket}</td><td><span class="ticker">${p.ticker}</span></td><td style="text-align:right">$${p.price}</td><td style="text-align:right" class="${p.perfRaw>=0?'pos':'neg'}">${p.perfDisp}</td></tr>`;
+            });
+            document.getElementById('participant-area').innerHTML = pTable + '</table>';
 
-                // Champion Card
-                const leader = participants[0];
-                document.getElementById('leader-card').innerHTML = `
-                    <div class="stat-card">
-                        <div style="font-size:0.8em; letter-spacing:1px;">ALPHA CHAMPION</div>
-                        <div class="winner-name">👑 ${leader.name}</div>
-                        <div style="font-size:1.1em; color:var(--accent); font-weight:bold;">${leader.ticker} • ${leader.perfDisp}</div>
-                    </div>`;
+            const leader = participants[0];
+            document.getElementById('leader-card').innerHTML = `<div class="stat-card"><div>CURRENT CHAMPION</div><div class="winner-name">👑 ${leader.name}</div><div style="font-size:1.1em; color:var(--accent); font-weight:bold;">${leader.ticker} • ${leader.perfDisp}</div></div>`;
 
-                // Benchmarks
-                const displayBenchmarks = [...benchmarks, { name: 'OUCT Average', perfRaw: avgPerf, perfDisp: (avgPerf * 100).toFixed(2) + '%' }];
-                document.getElementById('market-area').innerHTML = displayBenchmarks.map(b => `
-                    <div class="benchmark-card">
+            benchmarks.push({ name: 'OUCT Average', perfRaw: avgPerf, perfDisp: (avgPerf * 100).toFixed(2) + '%' });
+            document.getElementById('market-area').innerHTML = benchmarks.map(b => `<div class="benchmark-card"><div style="font-weight:700; font-size:0.85em;">${b.name}</div><div class="${b.perfRaw>=0?'pos':'neg'}">${b.perfDisp}</div></div>`).join('');
+
+            fetchHistory(leader.ticker);
+            fetch2025();
+        } catch (e) { document.getElementById('participant-area').innerHTML = "Error loading data. Check Sheet settings."; }
+    }
+
+    async function fetchHistory(leaderTicker) {
+        try {
+            const res = await fetch(`https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:json&sheet=${TAB_HISTORY}`);
+            const text = await res.text();
+            const json = JSON.parse(text.substring(text.indexOf('{'), text.lastIndexOf('}') + 1));
+            const rows = json.table.rows;
+            const cols = json.table.cols;
+            const labels = rows.map(r => r.c[0]?.f || '');
+            const colors = ['#1a2a6c', '#b21f1f', '#fdbb2d', '#27ae60', '#3498db', '#9b59b6', '#e67e22'];
+            
+            const datasets = [];
+            for (let i = 1; i < cols.length; i++) {
+                if (!cols[i] ||
