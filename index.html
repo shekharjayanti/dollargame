@@ -1,4 +1,9 @@
-<!DOCTYPE html>
+participants.sort((a, b) => b.perfRaw - a.perfRaw);
+            
+            const avgPerf = participants.reduce((sum, p) => sum + p.perfRaw, 0) / participants.length;
+            const avgPerfDisp = (avgPerf * 100).toFixed(2) + '%';
+            
+            let pTable = `<table><tr><th>#</th><th>Name</th><th>Ticker</th><th style="text-align:right">Price</th><th style="text-align:right">Gain</th></tr>`;<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
@@ -333,6 +338,7 @@
     <header>
         <h1>🏆 The $ Game: 2026</h1>
         <button class="refresh-btn" onclick="update()">🔄 Update Live</button>
+        <small style="color: #999; font-size: 0.7em;">v2.0.1</small>
     </header>
 
     <div id="leader-card"></div>
@@ -420,6 +426,7 @@
                     if (participants.length < 10) {
                         participants.push(item);
                     } else {
+                        // Only add market benchmarks (S&P, Nasdaq, Dow)
                         benchmarks.push(item);
                         if (name.toUpperCase().includes("S&P") || ticker.includes("INX")) {
                             sp500Perf = perfRaw;
@@ -427,13 +434,6 @@
                     }
                 }
             });
-
-            participants.sort((a, b) => b.perfRaw - a.perfRaw);
-            
-            const avgPerf = participants.reduce((sum, p) => sum + p.perfRaw, 0) / participants.length;
-            const avgPerfDisp = (avgPerf * 100).toFixed(2) + '%';
-            
-            let pTable = `<table><tr><th>#</th><th>Name</th><th>Ticker</th><th style="text-align:right">Price</th><th style="text-align:right">Gain</th></tr>`;
             participants.forEach((p, i) => {
                 const isBeatingMarket = p.perfRaw > sp500Perf && sp500Perf !== -999;
                 const color = p.perfRaw >= 0 ? 'pos' : 'neg';
