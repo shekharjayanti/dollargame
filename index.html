@@ -342,7 +342,10 @@
     <div class="chart-container">
         <canvas id="multiChart"></canvas>
     </div>
-
+<h2>Performance Distribution</h2>
+<div class="chart-container" style="height: 350px;">
+    <canvas id="distributionChart"></canvas>
+</div>
     <div class="section-divider">
         <h2>📅 2025 Performance</h2>
         <div>
@@ -367,6 +370,7 @@
     const TAB_HISTORY = 'History';
 
     let chartObj = null;
+    let distributionChartObj = null;
 
     const market2025 = {
         'S&P 500 (.INX)': 0.1639,
@@ -491,12 +495,108 @@
 
             fetchHistory(participants);
             fetch2025Data();
+            createDistributionChart(participants, sp500Perf);
         } catch (e) {
             console.error('Error:', e);
             document.getElementById('participant-area').innerHTML = `<div class="error-msg">❌ Error: ${e.message}</div>`;
         }
     }
+function createDistributionChart(participants, sp500Perf) {
+    const ctx = document.getElementById('distributionChart').getContext('2d');
+    
+    // Sort participants by performance
+    const sorted = [...participants].sort((a, b) => a.perfRaw - b.perfRaw);
+    
+    // Create colors based on whether beating S&P 500
+    const colors = sorted.map(p => {
+        if (sp500Perf !== -999 && p.perfRaw > sp500Perf) {
+            return '#27ae60'; // Green for beating market
+        } else if (p.perfRaw >= 0) {
+            return '#3498db'; // Blue for positive but not beating market
+        } else {
+            return '#e74c3c'; // Red for negative
+        }
+    });
 
+    const labels = sorted.map(p => p.name);
+    const data = sorted.map(p => p.perfRaw * 100);
+
+    // Add S&P 500 line if available
+    const sp500Line = sp500Perf !== -999 ? sp500Perf * 100 : null;
+
+    if (distributionChartObj) distributionChartObj.destroy();
+    
+    distributionChartObj = new Chart(ctx, {
+        type: 'bar',
+        data: {
+            labels: labels,
+            datasets: [{
+                label: 'Return %',
+                data: data,
+                backgroundColor: colors,
+                borderColor: colors.map(c => c === '#27ae60' ? '#1e8449' : (c === '#3498db' ? '#2874a6' : '#c0392b')),
+                borderWidth: 2
+            }]
+        },
+        options: {
+            indexAxis: 'y',
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: {
+                    display: false
+                },
+                tooltip: {
+                    callbacks: {
+                        label: function(context) {
+                            return context.parsed.x.toFixed(2) + '%';
+                        }
+                    }
+                },
+                annotation: sp500Line !== null ? {
+                    annotations: {
+                        sp500Line: {
+                            type: 'line',
+                            xMin: sp500Line,
+                            xMax: sp500Line,
+                            borderColor: '#fdbb2d',
+                            borderWidth: 3,
+                            borderDash: [10, 5],
+                            label: {
+                                display: true,
+                                content: 'S&P 500',
+                                position: 'end',
+                                backgroundColor: '#fdbb2d',
+                                color: '#333',
+                                font: {
+                                    weight: 'bold',
+                                    size: window.innerWidth < 480 ? 9 : 11
+                                }
+                            }
+                        }
+                    }
+                } : undefined
+            },
+            scales: {
+                x: {
+                    ticks: {
+                        callback: v => v.toFixed(1) + '%',
+                        font: { size: window.innerWidth < 480 ? 9 : 11 }
+                    },
+                    title: {
+                        display: true,
+                        text: 'Performance (%)'
+                    }
+                },
+                y: {
+                    ticks: {
+                        font: { size: window.innerWidth < 480 ? 9 : 11 }
+                    }
+                }
+            }
+        }
+    });
+}
     async function fetchHistory(participants) {
         console.log('Fetching history from Google Sheets...');
 
@@ -714,3 +814,4 @@
 </script>
 </body>
 </html>
+
