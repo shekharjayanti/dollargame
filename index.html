@@ -96,7 +96,7 @@
         }
 
         th {
-            text-align: left;
+            text-align: center;
             padding: 10px 4px;
             font-size: 0.75em;
             color: #888;
@@ -105,12 +105,29 @@
             white-space: nowrap;
         }
 
+        th:nth-child(2) {
+            text-align: left;
+        }
+
         td {
             padding: 12px 4px;
             border-bottom: 1px solid #f8f8f8;
             font-size: 0.95em;
             height: 50px;
             vertical-align: middle;
+            text-align: center;
+        }
+
+        td:nth-child(2) {
+            text-align: left;
+        }
+
+        td:nth-child(3) {
+            padding-right: 2px;
+        }
+
+        td:nth-child(4) {
+            padding-left: 2px;
         }
 
         .ticker {
@@ -261,6 +278,14 @@
                 height: 45px;
             }
 
+            td:nth-child(3) {
+                padding-right: 1px;
+            }
+
+            td:nth-child(4) {
+                padding-left: 1px;
+            }
+
             th {
                 font-size: 0.7em;
                 padding: 8px 2px;
@@ -321,6 +346,14 @@
 
             td {
                 padding: 10px 1px;
+            }
+
+            td:nth-child(3) {
+                padding-right: 0px;
+            }
+
+            td:nth-child(4) {
+                padding-left: 0px;
             }
 
             th {
@@ -410,7 +443,7 @@
                     const perfRaw = r.c[4] ? r.c[4].v : 0;
                     const perfDisp = (perfRaw * 100).toFixed(2) + '%';
                     const todayChangeRaw = r.c[5] ? r.c[5].v : 0;
-                    const todayChangeDisp = (todayChangeRaw).toFixed(2) + '%';
+                    const todayChangeDisp = (todayChangeRaw * 100).toFixed(2) + '%';
 
                     const item = { name, ticker, price, perfRaw, perfDisp, todayChangeRaw, todayChangeDisp };
 
@@ -848,4 +881,3 @@
 </script>
 </body>
 </html>
-
