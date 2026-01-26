@@ -442,8 +442,8 @@
                     const price = r.c[3] ? (r.c[3].f || r.c[3].v) : '0';
                     const perfRaw = r.c[4] ? r.c[4].v : 0;
                     const perfDisp = (perfRaw * 100).toFixed(2) + '%';
-                    const todayChangeRaw = r.c[5] ? r.c[5].v : 0;
-                    const todayChangeDisp = (todayChangeRaw * 100).toFixed(2) + '%';
+                    const today = r.c[5] ? r.c[5].v : 0;
+                    const todayChangeDisp = (todayChangeRaw).toFixed(2) + '%';
 
                     const item = { name, ticker, price, perfRaw, perfDisp, todayChangeRaw, todayChangeDisp };
 
@@ -881,3 +881,4 @@
 </script>
 </body>
 </html>
+
