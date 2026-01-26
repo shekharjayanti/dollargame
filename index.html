@@ -409,8 +409,10 @@
                     const price = r.c[3] ? (r.c[3].f || r.c[3].v) : '0';
                     const perfRaw = r.c[4] ? r.c[4].v : 0;
                     const perfDisp = (perfRaw * 100).toFixed(2) + '%';
+                    const todayChangeRaw = r.c[5] ? r.c[5].v : 0;
+                    const todayChangeDisp = (todayChangeRaw * 100).toFixed(2) + '%';
 
-                    const item = { name, ticker, price, perfRaw, perfDisp };
+                    const item = { name, ticker, price, perfRaw, perfDisp, todayChangeRaw, todayChangeDisp };
 
                     if (participants.length < 10) {
                         participants.push(item);
@@ -428,10 +430,11 @@
             const avgPerf = participants.reduce((sum, p) => sum + p.perfRaw, 0) / participants.length;
             const avgPerfDisp = (avgPerf * 100).toFixed(2) + '%';
 
-            let pTable = `<table><tr><th>#</th><th>Name</th><th>Ticker</th><th style="text-align:right">Price</th><th style="text-align:right">Gain</th></tr>`;
+            let pTable = `<table><tr><th>#</th><th>Name</th><th>Ticker</th><th style="text-align:right">Price (Today's Change)</th><th style="text-align:right">Gain</th></tr>`;
             participants.forEach((p, i) => {
                 const isBeatingMarket = p.perfRaw > sp500Perf && sp500Perf !== -999;
                 const color = p.perfRaw >= 0 ? 'pos' : 'neg';
+                const todayColor = p.todayChangeRaw >= 0 ? 'pos' : 'neg';
 
                 let rocketSize = '1em';
                 if (isBeatingMarket) {
@@ -450,7 +453,7 @@
                     <td>#${i+1}</td>
                     <td><strong>${p.name}</strong>${isBeatingMarket ? `<span class="rocket" style="font-size: ${rocketSize};">🚀</span>` : ''}</td>
                     <td><span class="ticker">${p.ticker}</span></td>
-                    <td style="text-align:right">$${p.price}</td>
+                    <td style="text-align:right">${p.price}<br><span class="${todayColor}" style="font-size:0.85em">(${(p.todayChangeRaw > 0 ? '+' : '') + p.todayChangeDisp})</span></td>
                     <td style="text-align:right" class="${color}">${(p.perfRaw > 0 ? '+' : '') + p.perfDisp}</td>
                 </tr>`;
             });
