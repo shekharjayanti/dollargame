@@ -374,6 +374,8 @@
     <header>
         <h1>🏆 The $ Game: 2026</h1>
         <button class="refresh-btn" onclick="update()">🔄 Update Live</button>
+        document.getElementById('last-update').innerText = "Last Updated: " + new Date().toLocaleTimeString();
+        
     </header>
 
     <div id="leader-card"></div>
@@ -890,5 +892,6 @@
 </script>
 </body>
 </html>
+
 
 
