@@ -46,6 +46,13 @@
             gap: 10px;
         }
 
+        .last-update {
+            font-size: 0.85em;
+            color: #666;
+            text-align: right;
+            margin-left: auto;
+        }
+
         h1 {
             font-size: 1.5em;
             margin: 0;
@@ -374,6 +381,7 @@
     <header>
         <h1>🏆 The $ Game: 2026</h1>
         <button class="refresh-btn" onclick="update()">🔄 Update Live</button>
+        <div class="last-update" id="last-update">Last updated: --:--</div>
         
         
     </header>
@@ -551,10 +559,26 @@
             fetchHistory(participants);
             fetch2025Data();
             createDistributionChart(participants, sp500Perf);
+            updateLastUpdateTime();
         } catch (e) {
             console.error('Error:', e);
             document.getElementById('participant-area').innerHTML = `<div class="error-msg">❌ Error: ${e.message}</div>`;
         }
+    }
+
+    function updateLastUpdateTime() {
+        const now = new Date();
+        const timeString = now.toLocaleTimeString('en-US', { 
+            hour: '2-digit', 
+            minute: '2-digit',
+            second: '2-digit',
+            hour12: true 
+        });
+        const dateString = now.toLocaleDateString('en-US', { 
+            month: 'short', 
+            day: 'numeric' 
+        });
+        document.getElementById('last-update').textContent = `Last updated: ${dateString} at ${timeString}`;
     }
 
     function createDistributionChart(participants, sp500Perf) {
@@ -887,8 +911,7 @@
     }
 
     update();
-        init();
-    setInterval(init, 60000);
+    setInterval(update, 60000);
 </script>
 </body>
 </html>
