@@ -386,6 +386,11 @@
         
     </header>
 
+    <h2>Year-over-Year Performance</h2>
+    <div class="chart-container" style="height: 320px;">
+        <canvas id="yearlyChart"></canvas>
+    </div>
+
     <div id="leader-card"></div>
 
     <h2>Leaderboard</h2>
@@ -431,6 +436,8 @@
 
     let chartObj = null;
     let distributionChartObj = null;
+    let yearlyChartObj = null;
+    let yearlyData = { perf2026: null, perf2025: null };
 
     const market2025 = {
         'S&P 500 (.INX)': 0.1639,
@@ -559,6 +566,15 @@
             fetchHistory(participants);
             fetch2025Data();
             createDistributionChart(participants, sp500Perf);
+
+            // Store 2026 data for yearly chart
+            yearlyData.perf2026 = {
+                ouct: avgPerf * 100,
+                sp500: sp500Perf !== -999 ? sp500Perf * 100 : null,
+                nasdaq: benchmarks.find(b => b.name?.toUpperCase().includes('NASDAQ'))?.perfRaw * 100 ?? null,
+                dow: benchmarks.find(b => b.name?.toUpperCase().includes('DOW'))?.perfRaw * 100 ?? null
+            };
+            createYearlyChart();
             updateLastUpdateTime();
         } catch (e) {
             console.error('Error:', e);
@@ -888,6 +904,15 @@
             });
             document.getElementById('participant-2025-area').innerHTML = pTable2025 + '</table>';
 
+            // Store 2025 data for yearly chart
+            yearlyData.perf2025 = {
+                ouct: avgFinal * 100,
+                sp500: (market2025['S&P 500 (.INX)'] ?? 0) * 100,
+                nasdaq: (market2025['Nasdaq Composite (.IXIC)'] ?? 0) * 100,
+                dow: (market2025['Dow Jones Industrial (.DJI)'] ?? 0) * 100
+            };
+            createYearlyChart();
+
             const benchmarks2025 = [];
             for (const [name, perfRaw] of Object.entries(market2025)) {
                 benchmarks2025.push({
@@ -910,11 +935,92 @@
         }
     }
 
+    function createYearlyChart() {
+        const { perf2025, perf2026 } = yearlyData;
+        if (perf2025 === null || perf2026 === null) return;
+
+        const ctx = document.getElementById('yearlyChart').getContext('2d');
+        if (yearlyChartObj) yearlyChartObj.destroy();
+
+        const years = ['2025', '2026'];
+
+        const datasets = [
+            {
+                label: 'OUCT Covalent Partners',
+                data: [perf2025.ouct, perf2026.ouct],
+                backgroundColor: ['#667eea', '#667eea'],
+                borderColor: ['#4a5fcf', '#4a5fcf'],
+                borderWidth: 2,
+                borderRadius: 6
+            },
+            {
+                label: 'S&P 500',
+                data: [perf2025.sp500, perf2026.sp500 ?? null],
+                backgroundColor: ['#fdbb2d', '#fdbb2d'],
+                borderColor: ['#e0a020', '#e0a020'],
+                borderWidth: 2,
+                borderRadius: 6
+            },
+            {
+                label: 'Nasdaq',
+                data: [perf2025.nasdaq, perf2026.nasdaq ?? null],
+                backgroundColor: ['#27ae60', '#27ae60'],
+                borderColor: ['#1e8449', '#1e8449'],
+                borderWidth: 2,
+                borderRadius: 6
+            },
+            {
+                label: 'Dow Jones',
+                data: [perf2025.dow, perf2026.dow ?? null],
+                backgroundColor: ['#e74c3c', '#e74c3c'],
+                borderColor: ['#c0392b', '#c0392b'],
+                borderWidth: 2,
+                borderRadius: 6
+            }
+        ];
+
+        yearlyChartObj = new Chart(ctx, {
+            type: 'bar',
+            data: { labels: years, datasets },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        position: 'bottom',
+                        labels: { font: { size: window.innerWidth < 480 ? 9 : 11 }, boxWidth: 14 }
+                    },
+                    tooltip: {
+                        callbacks: {
+                            label: ctx => `${ctx.dataset.label}: ${ctx.parsed.y !== null ? (ctx.parsed.y > 0 ? '+' : '') + ctx.parsed.y.toFixed(2) + '%' : 'N/A'}`
+                        }
+                    }
+                },
+                scales: {
+                    y: {
+                        ticks: {
+                            callback: v => (v > 0 ? '+' : '') + v.toFixed(1) + '%',
+                            font: { size: window.innerWidth < 480 ? 9 : 11 }
+                        },
+                        title: { display: true, text: 'Performance (%)' },
+                        grid: { color: 'rgba(0,0,0,0.06)' }
+                    },
+                    x: {
+                        title: { display: true, text: 'Year' },
+                        ticks: { font: { size: window.innerWidth < 480 ? 11 : 13, weight: 'bold' } },
+                        grid: { display: false }
+                    }
+                }
+            }
+        });
+    }
+
     update();
     setInterval(update, 60000);
 </script>
 </body>
 </html>
+
 
 
 
