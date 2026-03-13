@@ -425,4 +425,97 @@
 
     async function fetchHistory(participants) {
         try {
-            const res = await fetch
+            const res = await fetch(`https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:json&sheet=${TAB_HISTORY}`);
+            const text = await res.text();
+            const json = JSON.parse(text.substring(text.indexOf('{'), text.lastIndexOf('}') + 1));
+            const rows = json.table.rows;
+            const cols = json.table.cols;
+
+            const labels = rows.map(r => r.c[0]?.f || '');
+            const allDatasets = [];
+            const colors = ['#1a2a6c', '#b21f1f', '#fdbb2d', '#27ae60', '#3498db', '#9b59b6', '#e67e22', '#1abc9c'];
+
+            for (let i = 1; i < cols.length; i++) {
+                if (!cols[i]?.label) continue;
+                const tickerData = rows.map(r => {
+                    const val = r.c[i]?.v;
+                    const firstVal = rows[0].c[i]?.v;
+                    return (firstVal && val) ? ((val - firstVal) / firstVal) * 100 : 0;
+                });
+                allDatasets.push({
+                    label: cols[i].label,
+                    data: tickerData,
+                    borderColor: colors[i % colors.length],
+                    borderWidth: 2,
+                    pointRadius: 0,
+                    fill: false
+                });
+            }
+
+            const ctx = document.getElementById('multiChart').getContext('2d');
+            if (chartObj) chartObj.destroy();
+            chartObj = new Chart(ctx, {
+                type: 'line',
+                data: { labels, datasets: allDatasets },
+                options: { responsive: true, maintainAspectRatio: false }
+            });
+        } catch (e) { console.error(e); }
+    }
+
+    async function fetch2025Data() {
+        try {
+            const res = await fetch(`https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:json&gid=${GID_2025}`);
+            const text = await res.text();
+            const json = JSON.parse(text.substring(text.indexOf('{'), text.lastIndexOf('}') + 1));
+            const rows = json.table.rows;
+            let participants2025 = [];
+
+            rows.forEach((r) => {
+                if(r.c && r.c[0] && r.c[1]) {
+                    const name = r.c[0].v || "";
+                    const ticker = r.c[1].v || "";
+                    if(ticker === 'Ticker' || name === 'Participant' || !ticker) return;
+                    const finalRaw = r.c[5] ? r.c[5].v : 0;
+                    participants2025.push({ name, ticker, finalRaw, finalDisp: (finalRaw * 100).toFixed(2) + '%' });
+                }
+            });
+
+            participants2025.sort((a, b) => b.finalRaw - a.finalRaw);
+            const avgFinal = participants2025.reduce((sum, p) => sum + p.finalRaw, 0) / participants2025.length;
+            document.getElementById('ouct-2025-badge').innerHTML = `OUCT Covalent Partners: <strong>${(avgFinal > 0 ? '+' : '') + (avgFinal * 100).toFixed(2)}%</strong>`;
+
+            let pTable2025 = `<table><tr><th>#</th><th>Name</th><th>Ticker</th><th style="text-align:right">Final Return</th></tr>`;
+            participants2025.forEach((p, i) => {
+                pTable2025 += `<tr><td>#${i+1}</td><td><strong>${p.name}</strong></td><td><span class="ticker">${p.ticker}</span></td><td style="text-align:right" class="${p.finalRaw >= 0 ? 'pos' : 'neg'}">${p.finalDisp}</td></tr>`;
+            });
+            document.getElementById('participant-2025-area').innerHTML = pTable2025 + '</table>';
+            
+            yearlyData.perf2025 = { ouct: avgFinal * 100, sp500: market2025['S&P 500 (.INX)'] * 100, nasdaq: market2025['Nasdaq Composite (.IXIC)'] * 100, dow: market2025['Dow Jones Industrial (.DJI)'] * 100 };
+            createYearlyChart();
+        } catch (e) { console.error(e); }
+    }
+
+    function createYearlyChart() {
+        const { perf2025, perf2026 } = yearlyData;
+        if (!perf2025 || !perf2026) return;
+        const ctx = document.getElementById('yearlyChart').getContext('2d');
+        if (yearlyChartObj) yearlyChartObj.destroy();
+
+        yearlyChartObj = new Chart(ctx, {
+            type: 'bar',
+            data: {
+                labels: ['2025', '2026'],
+                datasets: [
+                    { label: 'OUCT', data: [perf2025.ouct, perf2026.ouct], backgroundColor: '#667eea' },
+                    { label: 'S&P 500', data: [perf2025.sp500, perf2026.sp500], backgroundColor: '#fdbb2d' }
+                ]
+            },
+            options: { responsive: true, maintainAspectRatio: false }
+        });
+    }
+
+    update();
+    setInterval(update, 60000);
+</script>
+</body>
+</html>
