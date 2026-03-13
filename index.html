@@ -22,11 +22,11 @@
             padding: 30px;
             color: #333;
             margin: 0;
-            font-size: 18px; /* Increased base font for desktop readability */
+            font-size: 18px; 
         }
 
         .dashboard {
-            max-width: 1200px; /* Wider container for better data visualization */
+            max-width: 1200px; 
             margin: 0 auto;
             background: white;
             padding: 40px;
@@ -45,19 +45,9 @@
             gap: 20px;
         }
 
-        .last-update {
-            font-size: 0.8em;
-            color: #666;
-            text-align: right;
-        }
-
+        .last-update { font-size: 0.8em; color: #666; text-align: right; }
         h1 { font-size: 2.2em; margin: 0; flex: 1; min-width: 300px; }
-        h2 { 
-            font-size: 1.6em; 
-            margin: 40px 0 20px 0; 
-            border-left: 6px solid var(--primary); 
-            padding-left: 15px;
-        }
+        h2 { font-size: 1.6em; margin: 40px 0 20px 0; border-left: 6px solid var(--primary); padding-left: 15px; }
 
         .stat-card {
             background: linear-gradient(135deg, #1a2a6c, #b21f1f);
@@ -66,19 +56,12 @@
             border-radius: 20px;
             text-align: center;
             margin-bottom: 40px;
-            box-shadow: 0 10px 20px rgba(26, 42, 108, 0.2);
         }
 
-        .winner-name {
-            font-size: 3.5em; /* Impactful size for the champion */
-            font-weight: 800;
-            margin: 10px 0;
-            letter-spacing: -1px;
-        }
+        .winner-name { font-size: 3.5em; font-weight: 800; margin: 10px 0; letter-spacing: -1px; }
 
-        /* Scaled Chart Containers */
         .chart-container {
-            height: 450px; /* Increased from 300px for desktop clarity */
+            height: 450px; 
             margin-bottom: 40px;
             background: #fff;
             padding: 20px;
@@ -87,29 +70,22 @@
             position: relative;
         }
 
-        .chart-container.yearly-size {
-            height: 400px;
-        }
+        .chart-container.yearly-size { height: 400px; }
 
-        /* Tightened Table Styles */
-        .table-wrapper {
-            overflow-x: auto;
-            -webkit-overflow-scrolling: touch;
-            margin-bottom: 30px;
-        }
+        .table-wrapper { overflow-x: auto; margin-bottom: 30px; }
 
         table {
             width: 100%;
             border-collapse: collapse;
-            max-width: 1000px; /* Pulls columns closer on large screens */
+            max-width: 1000px;
             margin: 0 auto;
         }
 
-        /* Desktop Column Width Controls */
+        /* Adjusted widths for 5-column 2025 table compatibility */
         table th:nth-child(1) { width: 60px; }
-        table th:nth-child(2) { width: 250px; }
-        table th:nth-child(3) { width: 140px; }
-        table th:nth-child(4) { width: 220px; }
+        table th:nth-child(2) { width: 220px; }
+        table th:nth-child(3) { width: 120px; }
+        table th:nth-child(4) { width: 180px; }
         table th:nth-child(5) { width: 150px; }
 
         th {
@@ -119,7 +95,6 @@
             color: #888;
             text-transform: uppercase;
             border-bottom: 3px solid #f0f0f0;
-            white-space: nowrap;
         }
 
         th:nth-child(2) { text-align: left; }
@@ -146,10 +121,8 @@
 
         .pos { color: #27ae60; font-weight: bold; }
         .neg { color: #e74c3c; font-weight: bold; }
-
         .rocket { margin-left: 8px; filter: drop-shadow(0 0 3px gold); }
 
-        /* Section Divider */
         .section-divider {
             margin: 60px 0 40px 0;
             padding: 30px;
@@ -159,13 +132,7 @@
             color: white;
         }
 
-        .section-divider h2 {
-            margin: 0;
-            font-size: 2em;
-            border: none;
-            padding: 0;
-            color: white;
-        }
+        .section-divider h2 { margin: 0; font-size: 2em; border: none; padding: 0; color: white; }
 
         .year-badge {
             display: inline-block;
@@ -187,7 +154,6 @@
             color: #333;
         }
 
-        /* Market Benchmarks Scaling */
         .benchmarks-grid {
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
@@ -212,20 +178,13 @@
             border-radius: 10px;
             cursor: pointer;
             font-weight: 600;
-            font-size: 1em;
-            transition: transform 0.2s, background 0.2s;
         }
 
-        .refresh-btn:hover { background: #243b96; transform: translateY(-2px); }
-
-        /* Mobile Adjustments (Keep functionality intact) */
         @media (max-width: 768px) {
             body { padding: 10px; font-size: 15px; }
-            .dashboard { padding: 20px; border-radius: 10px; }
-            h1 { font-size: 1.5em; }
+            .dashboard { padding: 20px; }
+            .chart-container { height: 300px; }
             .winner-name { font-size: 2em; }
-            .chart-container { height: 300px; padding: 10px; }
-            td { font-size: 0.9em; padding: 12px 5px; }
             table { table-layout: auto; }
         }
     </style>
@@ -425,7 +384,7 @@
 
     async function fetchHistory(participants) {
         try {
-            const res = await fetch(`https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:json&sheet=${TAB_HISTORY}`);
+            const res = await fetch(`https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx:out:json&sheet=${TAB_HISTORY}`);
             const text = await res.text();
             const json = JSON.parse(text.substring(text.indexOf('{'), text.lastIndexOf('}') + 1));
             const rows = json.table.rows;
@@ -475,8 +434,15 @@
                     const name = r.c[0].v || "";
                     const ticker = r.c[1].v || "";
                     if(ticker === 'Ticker' || name === 'Participant' || !ticker) return;
+                    
+                    const ongoingRaw = r.c[4] ? r.c[4].v : 0;
                     const finalRaw = r.c[5] ? r.c[5].v : 0;
-                    participants2025.push({ name, ticker, finalRaw, finalDisp: (finalRaw * 100).toFixed(2) + '%' });
+                    
+                    participants2025.push({ 
+                        name, ticker, 
+                        ongoingRaw, ongoingDisp: (ongoingRaw * 100).toFixed(2) + '%',
+                        finalRaw, finalDisp: (finalRaw * 100).toFixed(2) + '%' 
+                    });
                 }
             });
 
@@ -484,12 +450,30 @@
             const avgFinal = participants2025.reduce((sum, p) => sum + p.finalRaw, 0) / participants2025.length;
             document.getElementById('ouct-2025-badge').innerHTML = `OUCT Covalent Partners: <strong>${(avgFinal > 0 ? '+' : '') + (avgFinal * 100).toFixed(2)}%</strong>`;
 
-            let pTable2025 = `<table><tr><th>#</th><th>Name</th><th>Ticker</th><th style="text-align:right">Final Return</th></tr>`;
+            // FIXED: Restored 5-column table with "Ongoing" and "Final" columns
+            let pTable2025 = `<table><tr><th>#</th><th>Name</th><th>Ticker</th><th style="text-align:right">Ongoing</th><th style="text-align:right">Final Return</th></tr>`;
             participants2025.forEach((p, i) => {
-                pTable2025 += `<tr><td>#${i+1}</td><td><strong>${p.name}</strong></td><td><span class="ticker">${p.ticker}</span></td><td style="text-align:right" class="${p.finalRaw >= 0 ? 'pos' : 'neg'}">${p.finalDisp}</td></tr>`;
+                pTable2025 += `<tr>
+                    <td>#${i+1}</td>
+                    <td><strong>${p.name}</strong></td>
+                    <td><span class="ticker">${p.ticker}</span></td>
+                    <td style="text-align:right" class="${p.ongoingRaw >= 0 ? 'pos' : 'neg'}">${p.ongoingDisp}</td>
+                    <td style="text-align:right" class="${p.finalRaw >= 0 ? 'pos' : 'neg'}">${p.finalDisp}</td>
+                </tr>`;
             });
             document.getElementById('participant-2025-area').innerHTML = pTable2025 + '</table>';
             
+            // FIXED: Added benchmark rendering loop for 2025 market cards
+            const benchmarks2025 = [];
+            for (const [name, perfRaw] of Object.entries(market2025)) {
+                benchmarks2025.push({ name, perfRaw, perfDisp: (perfRaw * 100).toFixed(2) + '%' });
+            }
+            document.getElementById('market-2025-area').innerHTML = benchmarks2025.map(b => `
+                <div class="benchmark-card">
+                    <div style="font-weight:700;">${b.name}</div>
+                    <div class="${b.perfRaw >= 0 ? 'pos' : 'neg'}">${(b.perfRaw > 0 ? '+' : '') + b.perfDisp}</div>
+                </div>`).join('');
+
             yearlyData.perf2025 = { ouct: avgFinal * 100, sp500: market2025['S&P 500 (.INX)'] * 100, nasdaq: market2025['Nasdaq Composite (.IXIC)'] * 100, dow: market2025['Dow Jones Industrial (.DJI)'] * 100 };
             createYearlyChart();
         } catch (e) { console.error(e); }
