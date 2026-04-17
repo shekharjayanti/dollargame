@@ -414,6 +414,23 @@
                 });
             }
 
+            // Append today's live value from the leaderboard data so the chart
+            // end date matches the table (History tab is always one day behind)
+            const todayLabel = new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+            const participantMap = {};
+            participants.forEach(p => { participantMap[p.ticker.toUpperCase()] = p.perfRaw * 100; });
+
+            allDatasets.forEach(ds => {
+                const liveVal = participantMap[ds.label.toUpperCase()];
+                if (liveVal !== undefined) {
+                    ds.data.push(liveVal);
+                } else {
+                    // No live match — carry forward the last known value
+                    ds.data.push(ds.data[ds.data.length - 1] ?? 0);
+                }
+            });
+            labels.push(todayLabel);
+
             // Sort datasets by YTD performance (last data point) descending
             allDatasets.sort((a, b) => {
                 const aLast = a.data[a.data.length - 1] ?? -Infinity;
