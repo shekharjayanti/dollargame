@@ -384,7 +384,7 @@
 
     async function fetchHistory(participants, benchmarks = []) {
         try {
-            const res = await fetch(`https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx:out:json&sheet=${TAB_HISTORY}`);
+            const res = await fetch(`https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:json&sheet=${TAB_HISTORY}`);
             const text = await res.text();
             const json = JSON.parse(text.substring(text.indexOf('{'), text.lastIndexOf('}') + 1));
             const rows = json.table.rows;
@@ -419,7 +419,7 @@
             const todayLabel = new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
             const participantMap = {};
             participants.forEach(p => { participantMap[p.ticker.toUpperCase()] = p.perfRaw * 100; });
-            benchmarks.forEach(b => { participantMap[b.ticker.toUpperCase()] = b.perfRaw * 100; });
+            benchmarks.forEach(b => { if (b?.ticker) participantMap[b.ticker.toUpperCase()] = b.perfRaw * 100; });
 
             allDatasets.forEach(ds => {
                 const liveVal = participantMap[ds.label.toUpperCase()];
