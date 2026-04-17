@@ -401,8 +401,11 @@
                     const firstVal = rows[0].c[i]?.v;
                     return (firstVal && val) ? ((val - firstVal) / firstVal) * 100 : 0;
                 });
+                // Strip " Close" (or similar suffixes) from column labels
+                const rawLabel = cols[i].label;
+                const cleanLabel = rawLabel.replace(/\s+close$/i, '').trim();
                 allDatasets.push({
-                    label: cols[i].label,
+                    label: cleanLabel,
                     data: tickerData,
                     borderColor: colors[i % colors.length],
                     borderWidth: 2,
@@ -411,12 +414,48 @@
                 });
             }
 
+            // Sort datasets by YTD performance (last data point) descending
+            allDatasets.sort((a, b) => {
+                const aLast = a.data[a.data.length - 1] ?? -Infinity;
+                const bLast = b.data[b.data.length - 1] ?? -Infinity;
+                return bLast - aLast;
+            });
+
+            // Re-assign colors after sorting so colors stay consistent
+            allDatasets.forEach((ds, idx) => {
+                ds.borderColor = colors[idx % colors.length];
+            });
+
             const ctx = document.getElementById('multiChart').getContext('2d');
             if (chartObj) chartObj.destroy();
             chartObj = new Chart(ctx, {
                 type: 'line',
                 data: { labels, datasets: allDatasets },
-                options: { responsive: true, maintainAspectRatio: false }
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            labels: {
+                                // Show YTD % next to ticker name in legend
+                                generateLabels: function(chart) {
+                                    return chart.data.datasets.map((ds, i) => {
+                                        const lastVal = ds.data[ds.data.length - 1];
+                                        const sign = lastVal >= 0 ? '+' : '';
+                                        return {
+                                            text: `${ds.label}  (${sign}${lastVal?.toFixed(2)}%)`,
+                                            fillStyle: ds.borderColor,
+                                            strokeStyle: ds.borderColor,
+                                            lineWidth: 2,
+                                            hidden: false,
+                                            datasetIndex: i
+                                        };
+                                    });
+                                }
+                            }
+                        }
+                    }
+                }
             });
         } catch (e) { console.error(e); }
     }
