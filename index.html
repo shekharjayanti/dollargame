@@ -336,7 +336,7 @@
                     <div style="font-size:1.4em; color:var(--accent); font-weight:700;">${leader.ticker} • ${leader.perfDisp}</div>
                 </div>`;
 
-            fetchHistory(participants);
+            fetchHistory(participants, benchmarks);
             fetch2025Data();
             createDistributionChart(participants, sp500Perf);
             yearlyData.perf2026 = {
@@ -382,7 +382,7 @@
         });
     }
 
-    async function fetchHistory(participants) {
+    async function fetchHistory(participants, benchmarks = []) {
         try {
             const res = await fetch(`https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx:out:json&sheet=${TAB_HISTORY}`);
             const text = await res.text();
@@ -419,6 +419,7 @@
             const todayLabel = new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
             const participantMap = {};
             participants.forEach(p => { participantMap[p.ticker.toUpperCase()] = p.perfRaw * 100; });
+            benchmarks.forEach(b => { participantMap[b.ticker.toUpperCase()] = b.perfRaw * 100; });
 
             allDatasets.forEach(ds => {
                 const liveVal = participantMap[ds.label.toUpperCase()];
