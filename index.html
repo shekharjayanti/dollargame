@@ -192,8 +192,8 @@
 <body>
 <div class="dashboard">
     <header>
-        <h1>🏆 The $ Game: 2026</h1>
-        <button class="refresh-btn" onclick="update()">🔄 Update Live</button>
+        <h1>?? The $ Game: 2026</h1>
+        <button class="refresh-btn" onclick="update()">?? Update Live</button>
         <div class="last-update" id="last-update">Last updated: --:--</div>
     </header>
 
@@ -223,7 +223,7 @@
     </div>
 
     <div class="section-divider">
-        <h2>📅 2025 Performance</h2>
+        <h2>?? 2025 Performance</h2>
         <div>
             <span class="year-badge">Historical Results</span>
             <span class="ouct-badge" id="ouct-2025-badge">Loading...</span>
@@ -305,7 +305,7 @@
 
                 pTable += `<tr>
                     <td>#${i+1}</td>
-                    <td><strong>${p.name}</strong>${isBeatingMarket ? `<span class="rocket" style="font-size: ${rocketSize};">🚀</span>` : ''}</td>
+                    <td><strong>${p.name}</strong>${isBeatingMarket ? `<span class="rocket" style="font-size: ${rocketSize};">??</span>` : ''}</td>
                     <td><span class="ticker">${p.ticker}</span></td>
                     <td style="text-align:right">${p.price}<br><span class="${todayColor}" style="font-size:0.85em">(${(p.todayChangeRaw > 0 ? '+' : '') + p.todayChangeDisp})</span></td>
                     <td style="text-align:right" class="${color}">${(p.perfRaw > 0 ? '+' : '') + p.perfDisp}</td>
@@ -332,8 +332,8 @@
             document.getElementById('leader-card').innerHTML = `
                 <div class="stat-card">
                     <div style="font-weight: 600; opacity: 0.9;">CURRENT CHAMPION</div>
-                    <div class="winner-name">👑 ${leader.name}</div>
-                    <div style="font-size:1.4em; color:var(--accent); font-weight:700;">${leader.ticker} • ${leader.perfDisp}</div>
+                    <div class="winner-name">?? ${leader.name}</div>
+                    <div style="font-size:1.4em; color:var(--accent); font-weight:700;">${leader.ticker} � ${leader.perfDisp}</div>
                 </div>`;
 
             fetchHistory(participants, benchmarks);
@@ -426,7 +426,7 @@
                 if (liveVal !== undefined) {
                     ds.data.push(liveVal);
                 } else {
-                    // No live match — carry forward the last known value
+                    // No live match � carry forward the last known value
                     ds.data.push(ds.data[ds.data.length - 1] ?? 0);
                 }
             });
