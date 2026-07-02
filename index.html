@@ -258,7 +258,7 @@
 
     async function update() {
         try {
-            const res = await fetch(`https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:json&gid=${GID_MAIN}`);
+            const res = await fetch(`https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:json&gid=${GID_MAIN}&_=${new Date().getTime()}`);
             const text = await res.text();
             const json = JSON.parse(text.substring(text.indexOf('{'), text.lastIndexOf('}') + 1));
             const rows = json.table.rows;
@@ -384,7 +384,7 @@
 
     async function fetchHistory(participants, benchmarks = []) {
         try {
-            const res = await fetch(`https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:json&sheet=${TAB_HISTORY}`);
+            const res = await fetch(`https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:json&sheet=${TAB_HISTORY}&_=${new Date().getTime()}`);
             const text = await res.text();
             const json = JSON.parse(text.substring(text.indexOf('{'), text.lastIndexOf('}') + 1));
             const rows = json.table.rows;
@@ -480,7 +480,7 @@
 
     async function fetch2025Data() {
         try {
-            const res = await fetch(`https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:json&gid=${GID_2025}`);
+            const res = await fetch(`https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:json&gid=${GID_2025}&_=${new Date().getTime()}`);
             const text = await res.text();
             const json = JSON.parse(text.substring(text.indexOf('{'), text.lastIndexOf('}') + 1));
             const rows = json.table.rows;
