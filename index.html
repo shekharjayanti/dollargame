@@ -22,11 +22,11 @@
             padding: 30px;
             color: #333;
             margin: 0;
-            font-size: 18px; 
+            font-size: 18px;
         }
 
         .dashboard {
-            max-width: 1200px; 
+            max-width: 1200px;
             margin: 0 auto;
             background: white;
             padding: 40px;
@@ -61,7 +61,7 @@
         .winner-name { font-size: 3.5em; font-weight: 800; margin: 10px 0; letter-spacing: -1px; }
 
         .chart-container {
-            height: 450px; 
+            height: 450px;
             margin-bottom: 40px;
             background: #fff;
             padding: 20px;
@@ -491,14 +491,14 @@
                     const name = r.c[0].v || "";
                     const ticker = r.c[1].v || "";
                     if(ticker === 'Ticker' || name === 'Participant' || !ticker) return;
-                    
+
                     const ongoingRaw = r.c[4] ? r.c[4].v : 0;
                     const finalRaw = r.c[5] ? r.c[5].v : 0;
-                    
-                    participants2025.push({ 
-                        name, ticker, 
+
+                    participants2025.push({
+                        name, ticker,
                         ongoingRaw, ongoingDisp: (ongoingRaw * 100).toFixed(2) + '%',
-                        finalRaw, finalDisp: (finalRaw * 100).toFixed(2) + '%' 
+                        finalRaw, finalDisp: (finalRaw * 100).toFixed(2) + '%'
                     });
                 }
             });
@@ -519,7 +519,7 @@
                 </tr>`;
             });
             document.getElementById('participant-2025-area').innerHTML = pTable2025 + '</table>';
-            
+
             // FIXED: Added benchmark rendering loop for 2025 market cards
             const benchmarks2025 = [];
             for (const [name, perfRaw] of Object.entries(market2025)) {
