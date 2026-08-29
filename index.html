@@ -325,7 +325,7 @@
     const barValueLabels = {
         id: 'barValueLabels',
         afterDatasetsDraw(chart) {
-            if (!chart.options.plugins?.barValueLabels) return;
+            if (chart.options.plugins?.barValueLabels !== true) return;
             const { ctx } = chart;
             chart.data.datasets.forEach((ds, di) => {
                 const meta = chart.getDatasetMeta(di);
