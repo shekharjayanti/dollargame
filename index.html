@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>The $ Game - Covalent Partners</title>
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>💰</text></svg>">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
         :root {
@@ -47,15 +48,17 @@
 
         .last-update { font-size: 0.8em; color: #666; text-align: right; }
         h1 { font-size: 2.2em; margin: 0; flex: 1; min-width: 300px; }
+        h1, .stat-card, .section-divider { text-wrap: balance; }
         h2 { font-size: 1.6em; margin: 40px 0 20px 0; border-left: 6px solid var(--primary); padding-left: 15px; }
 
         .stat-card {
-            background: linear-gradient(135deg, #1a2a6c, #b21f1f);
+            background: linear-gradient(135deg, var(--primary), #b21f1f);
             color: white;
             padding: 40px;
             border-radius: 20px;
             text-align: center;
             margin-bottom: 40px;
+            box-shadow: 0 10px 30px rgba(26,42,108,0.25);
         }
 
         .winner-name { font-size: 3.5em; font-weight: 800; margin: 10px 0; letter-spacing: -1px; }
@@ -72,6 +75,21 @@
 
         .chart-container.yearly-size { height: 400px; }
 
+        .chart-legend {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 18px;
+            justify-content: center;
+            font-size: 0.85em;
+            color: #555;
+            margin: -20px 0 40px 0;
+        }
+        .chart-legend span { display: inline-flex; align-items: center; gap: 6px; }
+        .chart-legend i { width: 12px; height: 12px; border-radius: 3px; display: inline-block; }
+        .chart-legend i.dash {
+            width: 16px; height: 0; border-top: 2px dashed #888; border-radius: 0; background: none;
+        }
+
         .table-wrapper { overflow-x: auto; margin-bottom: 30px; }
 
         table {
@@ -81,12 +99,13 @@
             margin: 0 auto;
         }
 
-        /* Adjusted widths for 5-column 2025 table compatibility */
+        /* Adjusted widths for 5-column 2025 table / 6-column main leaderboard compatibility */
         table th:nth-child(1) { width: 60px; }
-        table th:nth-child(2) { width: 220px; }
-        table th:nth-child(3) { width: 120px; }
-        table th:nth-child(4) { width: 180px; }
-        table th:nth-child(5) { width: 150px; }
+        table th:nth-child(2) { width: 200px; }
+        table th:nth-child(3) { width: 110px; }
+        table th:nth-child(4) { width: 170px; }
+        table th:nth-child(5) { width: 130px; }
+        table th:nth-child(6) { width: 130px; }
 
         th {
             text-align: center;
@@ -178,6 +197,20 @@
             border-radius: 10px;
             cursor: pointer;
             font-weight: 600;
+            transition: background 0.15s ease, transform 0.1s ease;
+        }
+
+        .refresh-btn:hover { background: #142257; }
+        .refresh-btn:active { transform: scale(0.97); }
+
+        tbody tr { transition: background 0.1s ease; }
+        tbody tr:hover { background: #fafcff; }
+
+        .benchmark-card { transition: transform 0.15s ease, box-shadow 0.15s ease; }
+        .benchmark-card:hover { transform: translateY(-2px); box-shadow: 0 6px 16px rgba(0,0,0,0.06); }
+
+        @media (prefers-reduced-motion: reduce) {
+            .refresh-btn, tbody tr, .benchmark-card { transition: none; }
         }
 
         @media (max-width: 768px) {
@@ -186,15 +219,18 @@
             .chart-container { height: 300px; }
             .winner-name { font-size: 2em; }
             table { table-layout: auto; }
+            table th:nth-child(1), table th:nth-child(2), table th:nth-child(3),
+            table th:nth-child(4), table th:nth-child(5), table th:nth-child(6) { width: auto; }
+            th, td { padding: 10px 6px; font-size: 0.85em; }
         }
     </style>
 </head>
 <body>
 <div class="dashboard">
     <header>
-        <h1>🏆 The $ Game: 2026</h1>
+        <h1>💰 The $ Game: 2026</h1>
         <button class="refresh-btn" onclick="update()">🔄 Update Live</button>
-        <div class="last-update" id="last-update">Last updated: --:--</div>
+        <div class="last-update" id="last-update" aria-live="polite">Last updated: --:--</div>
     </header>
 
     <h2>Year-over-Year Performance</h2>
@@ -221,9 +257,15 @@
     <div class="chart-container">
         <canvas id="distributionChart"></canvas>
     </div>
+    <div class="chart-legend">
+        <span><i style="background:#27ae60"></i> Beating S&amp;P 500</span>
+        <span><i style="background:#f5a623"></i> Positive, trailing S&amp;P 500</span>
+        <span><i style="background:#e74c3c"></i> Negative</span>
+        <span><i class="dash"></i> S&amp;P 500 return</span>
+    </div>
 
     <div class="section-divider">
-        <h2>📅 2025 Performance</h2>
+        <h2>🏆 2025 Performance</h2>
         <div>
             <span class="year-badge">Historical Results</span>
             <span class="ouct-badge" id="ouct-2025-badge">Loading...</span>
@@ -249,6 +291,60 @@
     let distributionChartObj = null;
     let yearlyChartObj = null;
     let yearlyData = { perf2026: null, perf2025: null };
+
+    // Draws a dashed reference line (e.g. the S&P 500 return) across a chart —
+    // used so the benchmark everyone is measured against is always visible.
+    const refLinePlugin = {
+        id: 'refLine',
+        afterDraw(chart, args, opts) {
+            if (opts?.value == null || !isFinite(opts.value)) return;
+            const { ctx, chartArea, scales } = chart;
+            const scale = opts.axis === 'y' ? scales.y : scales.x;
+            if (!scale) return;
+            const pos = scale.getPixelForValue(opts.value);
+            ctx.save();
+            ctx.beginPath();
+            ctx.setLineDash([5, 4]);
+            ctx.strokeStyle = opts.color || '#888';
+            ctx.lineWidth = 2;
+            if (opts.axis === 'y') {
+                ctx.moveTo(chartArea.left, pos);
+                ctx.lineTo(chartArea.right, pos);
+            } else {
+                ctx.moveTo(pos, chartArea.top);
+                ctx.lineTo(pos, chartArea.bottom);
+            }
+            ctx.stroke();
+            ctx.restore();
+        }
+    };
+    Chart.register(refLinePlugin);
+
+    // Prints each bar's value just past its end — reads faster than hovering
+    // for a two-bar-per-year comparison.
+    const barValueLabels = {
+        id: 'barValueLabels',
+        afterDatasetsDraw(chart) {
+            if (!chart.options.plugins?.barValueLabels) return;
+            const { ctx } = chart;
+            chart.data.datasets.forEach((ds, di) => {
+                const meta = chart.getDatasetMeta(di);
+                if (meta.hidden) return;
+                meta.data.forEach((bar, i) => {
+                    const val = ds.data[i];
+                    if (val == null) return;
+                    ctx.save();
+                    ctx.fillStyle = '#333';
+                    ctx.font = '600 12px "Segoe UI", system-ui, sans-serif';
+                    ctx.textAlign = 'center';
+                    const sign = val >= 0 ? '+' : '';
+                    ctx.fillText(`${sign}${val.toFixed(1)}%`, bar.x, bar.y + (val >= 0 ? -8 : 16));
+                    ctx.restore();
+                });
+            });
+        }
+    };
+    Chart.register(barValueLabels);
 
     const market2025 = {
         'S&P 500 (.INX)': 0.1639,
@@ -296,12 +392,15 @@
             const avgPerf = participants.reduce((sum, p) => sum + p.perfRaw, 0) / participants.length;
             const avgPerfDisp = (avgPerf * 100).toFixed(2) + '%';
 
-            let pTable = `<table><tr><th>#</th><th>Name</th><th>Ticker</th><th style="text-align:right">Price (Today's Change)</th><th style="text-align:right">Gain</th></tr>`;
+            let pTable = `<table><tr><th>#</th><th>Name</th><th>Ticker</th><th style="text-align:right">Price (Today's Change)</th><th style="text-align:right">Gain</th><th style="text-align:right">vs S&amp;P 500</th></tr>`;
             participants.forEach((p, i) => {
                 const isBeatingMarket = p.perfRaw > sp500Perf && sp500Perf !== -999;
                 const color = p.perfRaw >= 0 ? 'pos' : 'neg';
                 const todayColor = p.todayChangeRaw >= 0 ? 'pos' : 'neg';
                 let rocketSize = isBeatingMarket ? (0.7 + Math.min(Math.log10(Math.max((p.perfRaw - sp500Perf) * 100, 0.1) + 1) / Math.log10(11), 1) * 0.8).toFixed(2) + 'em' : '1em';
+                const alphaRaw = sp500Perf !== -999 ? p.perfRaw - sp500Perf : null;
+                const alphaCell = alphaRaw === null ? '<span style="color:#bbb">—</span>'
+                    : `<span class="${alphaRaw >= 0 ? 'pos' : 'neg'}">${(alphaRaw > 0 ? '+' : '') + (alphaRaw * 100).toFixed(2)}%</span>`;
 
                 pTable += `<tr>
                     <td>#${i+1}</td>
@@ -309,6 +408,7 @@
                     <td><span class="ticker">${p.ticker}</span></td>
                     <td style="text-align:right">${p.price}<br><span class="${todayColor}" style="font-size:0.85em">(${(p.todayChangeRaw > 0 ? '+' : '') + p.todayChangeDisp})</span></td>
                     <td style="text-align:right" class="${color}">${(p.perfRaw > 0 ? '+' : '') + p.perfDisp}</td>
+                    <td style="text-align:right">${alphaCell}</td>
                 </tr>`;
             });
             document.getElementById('participant-area').innerHTML = pTable + '</table>';
@@ -361,7 +461,12 @@
         const ctx = document.getElementById('distributionChart').getContext('2d');
         const sorted = [...participants].sort((a, b) => a.perfRaw - b.perfRaw);
         const data = sorted.map(p => p.perfRaw * 100);
-        const colors = sorted.map(p => sp500Perf !== -999 && p.perfRaw > sp500Perf ? '#27ae60' : (p.perfRaw >= 0 ? '#3498db' : '#e74c3c'));
+        const colors = sorted.map(p => {
+            if (sp500Perf === -999) return p.perfRaw >= 0 ? '#27ae60' : '#e74c3c';
+            if (p.perfRaw > sp500Perf) return '#27ae60';       // beating the market
+            if (p.perfRaw >= 0) return '#f5a623';              // positive but trailing the market
+            return '#e74c3c';                                   // negative
+        });
 
         if (distributionChartObj) distributionChartObj.destroy();
         distributionChartObj = new Chart(ctx, {
@@ -374,9 +479,16 @@
                 indexAxis: 'y',
                 responsive: true,
                 maintainAspectRatio: false,
-                plugins: { legend: { display: false } },
+                plugins: {
+                    legend: { display: false },
+                    refLine: { axis: 'x', value: sp500Perf !== -999 ? sp500Perf * 100 : null, color: '#888' }
+                },
                 scales: {
-                    x: { ticks: { callback: v => v + '%' }, title: { display: true, text: 'Return (%)' } }
+                    x: {
+                        ticks: { callback: v => v + '%' },
+                        title: { display: true, text: 'Return (%)' },
+                        grid: { color: ctx => ctx.tick.value === 0 ? '#999' : '#eee' }
+                    }
                 }
             }
         });
@@ -444,6 +556,18 @@
                 ds.borderColor = colors[idx % colors.length];
             });
 
+            // Make the S&P 500 line the visual benchmark: thicker and dashed,
+            // so every participant is read as "above or below this line."
+            const sp500Ticker = benchmarks.find(b => b.name?.toUpperCase().includes('S&P') || b.ticker?.toUpperCase().includes('INX'))?.ticker?.toUpperCase();
+            allDatasets.forEach(ds => {
+                if (sp500Ticker && ds.label.toUpperCase() === sp500Ticker) {
+                    ds.borderWidth = 3;
+                    ds.borderDash = [6, 3];
+                    ds.borderColor = '#333';
+                    ds.order = -1;
+                }
+            });
+
             const ctx = document.getElementById('multiChart').getContext('2d');
             if (chartObj) chartObj.destroy();
             chartObj = new Chart(ctx, {
@@ -452,6 +576,13 @@
                 options: {
                     responsive: true,
                     maintainAspectRatio: false,
+                    scales: {
+                        y: {
+                            ticks: { callback: v => v + '%' },
+                            title: { display: true, text: 'Return since Jan 1 (%)' },
+                            grid: { color: ctx => ctx.tick.value === 0 ? '#999' : '#eee' }
+                        }
+                    },
                     plugins: {
                         legend: {
                             labels: {
@@ -508,7 +639,7 @@
             document.getElementById('ouct-2025-badge').innerHTML = `OUCT Covalent Partners: <strong>${(avgFinal > 0 ? '+' : '') + (avgFinal * 100).toFixed(2)}%</strong>`;
 
             // FIXED: Restored 5-column table with "Ongoing" and "Final" columns
-            let pTable2025 = `<table><tr><th>#</th><th>Name</th><th>Ticker</th><th style="text-align:right">Ongoing</th><th style="text-align:right">Final Return</th></tr>`;
+            let pTable2025 = `<table><tr><th>#</th><th>Name</th><th>Ticker</th><th style="text-align:right" title="Return as of when this pick was closed out or swapped">Ongoing</th><th style="text-align:right" title="Confirmed year-end return locked in for 2025">Final Return</th></tr>`;
             participants2025.forEach((p, i) => {
                 pTable2025 += `<tr>
                     <td>#${i+1}</td>
@@ -548,10 +679,24 @@
                 labels: ['2025', '2026'],
                 datasets: [
                     { label: 'OUCT', data: [perf2025.ouct, perf2026.ouct], backgroundColor: '#667eea' },
-                    { label: 'S&P 500', data: [perf2025.sp500, perf2026.sp500], backgroundColor: '#fdbb2d' }
+                    { label: 'S&P 500', data: [perf2025.sp500, perf2026.sp500], backgroundColor: '#fdbb2d' },
+                    { label: 'Nasdaq', data: [perf2025.nasdaq, perf2026.nasdaq], backgroundColor: '#27ae60' },
+                    { label: 'Dow', data: [perf2025.dow, perf2026.dow], backgroundColor: '#3498db' }
                 ]
             },
-            options: { responsive: true, maintainAspectRatio: false }
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                layout: { padding: { top: 20 } },
+                scales: {
+                    y: {
+                        ticks: { callback: v => v + '%' },
+                        title: { display: true, text: 'Return (%)' },
+                        grid: { color: ctx => ctx.tick.value === 0 ? '#999' : '#eee' }
+                    }
+                },
+                plugins: { barValueLabels: true }
+            }
         });
     }
 
